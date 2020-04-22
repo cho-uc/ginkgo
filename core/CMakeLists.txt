@@ -29,6 +29,7 @@ target_sources(ginkgo
     matrix/permutation.cpp
     matrix/sellp.cpp
     matrix/sparsity_csr.cpp
+    multigrid/amgx_pgm.cpp
     preconditioner/isai.cpp
     preconditioner/jacobi.cpp
     solver/bicg.cpp
