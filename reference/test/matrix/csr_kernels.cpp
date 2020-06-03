@@ -196,7 +196,6 @@ protected:
         cols_u[6] = 0;
     }
 
-
     void assert_equal_to_mtx(const Coo *m)
     {
         auto v = m->get_const_values();
