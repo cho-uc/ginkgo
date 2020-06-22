@@ -91,7 +91,6 @@ template <typename ValueType = default_precision>
 class Dense
     : public EnableLinOp<Dense<ValueType>>,
       public EnableCreateMethod<Dense<ValueType>>,
-      public EnableDistributeMethod<Dense<ValueType>>,
       public EnableDistributedCreateMethod<Dense<ValueType>>,
       public ConvertibleTo<Dense<next_precision<ValueType>>>,
       public ConvertibleTo<Coo<ValueType, int32>>,
@@ -116,7 +115,6 @@ class Dense
       public Permutable<int64>,
       public EnableAbsoluteComputation<remove_complex<Dense<ValueType>>> {
     friend class EnableCreateMethod<Dense>;
-    friend class EnableDistributeMethod<Dense>;
     friend class EnableDistributedCreateMethod<Dense>;
     friend class EnablePolymorphicObject<Dense, LinOp>;
     friend class Coo<ValueType, int32>;
@@ -544,7 +542,6 @@ protected:
         auto updated_exec = exec;
         return Dense::create(updated_exec, size, size[1]);
     }
-
 
     /**
      * @copydoc scale(const LinOp *)
