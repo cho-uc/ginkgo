@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/components/fill_array.hpp"
 #include "core/components/precision_conversion.hpp"
 #include "core/components/prefix_sum.hpp"
+#include "core/components/sqrt_array.hpp"
 #include "core/factorization/factorization_kernels.hpp"
 #include "core/factorization/ilu_kernels.hpp"
 #include "core/factorization/par_ict_kernels.hpp"
@@ -105,6 +106,12 @@ template <typename ValueType>
 GKO_DECLARE_OUTPLACE_ABSOLUTE_ARRAY_KERNEL(ValueType)
 GKO_NOT_COMPILED(GKO_HOOK_MODULE);
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_OUTPLACE_ABSOLUTE_ARRAY_KERNEL);
+
+
+template <typename SourceType, typename TargetType>
+GKO_DECLARE_SQRT_ARRAY_KERNEL(SourceType, TargetType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_PAIR(GKO_DECLARE_SQRT_ARRAY_KERNEL);
 
 
 }  // namespace components
