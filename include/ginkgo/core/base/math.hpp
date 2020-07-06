@@ -132,6 +132,21 @@ struct remove_complex_impl<std::complex<T>> {
     using type = T;
 };
 
+/**
+ * Use the complex type if it is not complex.
+ */
+template <typename T>
+struct add_complex_impl {
+    using type = std::complex<T>;
+};
+
+/**
+ * Use the same type if it is complex type.
+ */
+template <typename T>
+struct add_complex_impl<std::complex<T>> {
+    using type = std::complex<T>;
+};
 
 template <typename T>
 struct is_complex_impl : public std::integral_constant<bool, false> {};
@@ -173,6 +188,14 @@ struct cpx_real_type<std::complex<T>> {
  */
 template <typename T>
 using remove_complex = typename detail::remove_complex_impl<T>::type;
+
+
+/**
+ * Obtains a complex type of non-complex type, and leaves the type
+ * unchanged if it is a complex type.
+ */
+template <typename T>
+using add_complex = typename detail::add_complex_impl<T>::type;
 
 
 /**
@@ -596,22 +619,6 @@ GKO_INLINE GKO_ATTRIBUTES constexpr T one(const T &)
 
 
 /**
- * Returns the absolute value of the object.
- *
- * @tparam T  the type of the object
- *
- * @param x  the object
- *
- * @return x >= zero<T>() ? x : -x;
- */
-template <typename T>
-GKO_INLINE GKO_ATTRIBUTES constexpr T abs(const T &x)
-{
-    return x >= zero<T>() ? x : -x;
-}
-
-
-/**
  * Returns the larger of the arguments.
  *
  * @tparam T  type of the arguments
@@ -731,6 +738,33 @@ GKO_INLINE GKO_ATTRIBUTES constexpr auto squared_norm(const T &x)
     -> decltype(real(conj(x) * x))
 {
     return real(conj(x) * x);
+}
+
+
+/**
+ * Returns the absolute value of the object.
+ *
+ * @tparam T  the type of the object
+ *
+ * @param x  the object
+ *
+ * @return x >= zero<T>() ? x : -x;
+ */
+template <typename T>
+GKO_INLINE
+    GKO_ATTRIBUTES constexpr xstd::enable_if_t<!is_complex_s<T>::value, T>
+    abs(const T &x)
+{
+    return x >= zero<T>() ? x : -x;
+}
+
+
+template <typename T>
+GKO_INLINE GKO_ATTRIBUTES constexpr xstd::enable_if_t<is_complex_s<T>::value,
+                                                      remove_complex<T>>
+abs(const T &x)
+{
+    return squared_norm(x);
 }
 
 
