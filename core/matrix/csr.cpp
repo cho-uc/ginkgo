@@ -81,6 +81,7 @@ GKO_REGISTER_OPERATION(is_sorted_by_column_index,
                        csr::is_sorted_by_column_index);
 GKO_REGISTER_OPERATION(extract_diagonal, csr::extract_diagonal);
 GKO_REGISTER_OPERATION(fill_array, components::fill_array);
+GKO_REGISTER_OPERATION(absolute, csr::absolute);
 
 
 }  // namespace csr
@@ -479,6 +480,22 @@ std::unique_ptr<Dense<ValueType>> Csr<ValueType, IndexType>::extract_diagonal()
                                    zero<ValueType>()));
     exec->run(csr::make_extract_diagonal(this, lend(diag)));
     return diag;
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<LinOp> Csr<ValueType, IndexType>::absolute() const
+{
+    using abs_type = remove_complex<ValueType>;
+    using abs_csr = Csr<abs_type, IndexType>;
+    auto exec = this->get_executor();
+    auto abs_cpy = abs_csr::create(exec, this->get_size(),
+                                   this->get_num_stored_elements());
+    abs_cpy->col_idxs_ = this->col_idxs_;
+    abs_cpy->row_ptrs_ = this->row_ptrs_;
+    exec->run(csr::make_absolute(this, lend(abs_cpy)));
+    this->convert_strategy_helper(lend(abs_cpy));
+    return std::move(abs_cpy);
 }
 
 

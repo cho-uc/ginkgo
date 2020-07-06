@@ -36,6 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
+#include <ginkgo/core/base/math.hpp>
 
 
 namespace gko {
@@ -648,6 +649,7 @@ public:
             detail::strategy_rebuild_helper(result);
         }
     }
+
     friend class Csr<next_precision<ValueType>, IndexType>;
 
     void convert_to(
@@ -700,6 +702,15 @@ public:
         const Array<IndexType> *inverse_permutation_indices) const override;
 
     std::unique_ptr<Dense<ValueType>> extract_diagonal() const override;
+
+    friend class Csr<add_complex<ValueType>, IndexType>;
+
+    /**
+     * Return the matrix whose value are absolute of original matirx
+     *
+     * @return the absolute matrix
+     */
+    std::unique_ptr<LinOp> absolute() const;
 
     /**
      * Sorts all (value, col_idx) pairs in each row by column index

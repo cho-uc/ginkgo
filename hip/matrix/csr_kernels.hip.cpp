@@ -1207,6 +1207,24 @@ void extract_diagonal(std::shared_ptr<const HipExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_EXTRACT_DIAGONAL);
 
 
+template <typename ValueType, typename IndexType>
+void absolute(std::shared_ptr<const HipExecutor> exec,
+              const matrix::Csr<ValueType, IndexType> *source,
+              matrix::Csr<remove_complex<ValueType>, IndexType> *result)
+{
+    auto result_val = result->get_values();
+    auto source_val = source->get_const_values();
+    const auto num = source->get_num_stored_elements();
+    const dim3 grid(ceildiv(num, default_block_size));
+
+    hipLaunchKernelGGL(HIP_KERNEL_NAME(kernel::absolute_kernel), dim3(grid),
+                       dim3(default_block_size), 0, 0, num, source_val,
+                       result_val);
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_ABSOLUTE);
+
+
 }  // namespace csr
 }  // namespace hip
 }  // namespace kernels
