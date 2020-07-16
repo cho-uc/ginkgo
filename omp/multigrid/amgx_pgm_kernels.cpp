@@ -134,7 +134,8 @@ template <typename ValueType, typename IndexType>
 void amgx_pgm_generate(std::shared_ptr<const OmpExecutor> exec,
                        const matrix::Csr<ValueType, IndexType> *source,
                        const Array<IndexType> &agg,
-                       matrix::Csr<ValueType, IndexType> *coarse)
+                       matrix::Csr<ValueType, IndexType> *coarse,
+                       matrix::Csr<ValueType, IndexType> *temp)
 {
     GKO_NOT_IMPLEMENTED;
 }
