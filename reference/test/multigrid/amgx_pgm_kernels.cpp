@@ -557,9 +557,10 @@ TYPED_TEST(AmgxPgm, GenerateMtx)
     agg_vals[3] = 1;
     agg_vals[4] = 2;
     auto csr_coarse = mtx_type::create(this->exec, gko::dim<2>{3, 3}, 0);
+    auto empty = gko::matrix::Csr<value_type, index_type>::create(this->exec);
 
     gko::kernels::reference::amgx_pgm::amgx_pgm_generate(
-        this->exec, this->mtx.get(), agg, csr_coarse.get());
+        this->exec, this->mtx.get(), agg, csr_coarse.get(), empty.get());
 
     auto r = csr_coarse->get_const_row_ptrs();
     auto c = csr_coarse->get_const_col_idxs();
