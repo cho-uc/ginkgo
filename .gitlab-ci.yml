@@ -24,6 +24,8 @@ stages:
   BUILD_HIP: "OFF"
   RUN_EXAMPLES: "OFF"
   CONFIG_LOG: "ON"
+  BUILD_MPI: "OFF"
+  MPI_SUFFIX: ".openmpi"
   CXX_FLAGS: ""
   EXTRA_CMAKE_FLAGS: ""
   CI_PROJECT_DIR_SUFFIX: ""
@@ -61,6 +63,7 @@ stages:
         -DGINKGO_DEVEL_TOOLS=OFF -DGINKGO_BUILD_REFERENCE=${BUILD_REFERENCE}
         -DGINKGO_BUILD_OMP=${BUILD_OMP} -DGINKGO_BUILD_CUDA=${BUILD_CUDA}
         -DGINKGO_BUILD_HIP=${BUILD_HIP}
+        -DGINKGO_BUILD_MPI=${BUILD_MPI} -DMPI_EXECUTABLE_SUFFIX=${MPI_SUFFIX}
         -DGINKGO_BUILD_TESTS=ON -DGINKGO_BUILD_EXAMPLES=ON
         -DGINKGO_RUN_EXAMPLES=${RUN_EXAMPLES}
         -DGINKGO_CONFIG_LOG_DETAILED=${CONFIG_LOG}
@@ -88,6 +91,7 @@ stages:
         -DGINKGO_DEVEL_TOOLS=OFF -DGINKGO_BUILD_REFERENCE=${BUILD_REFERENCE}
         -DGINKGO_BUILD_OMP=${BUILD_OMP} -DGINKGO_BUILD_CUDA=${BUILD_CUDA}
         -DGINKGO_BUILD_HIP=${BUILD_HIP}
+        -DGINKGO_BUILD_MPI=${BUILD_MPI} -DMPI_EXECUTABLE_SUFFIX=${MPI_SUFFIX}
         -DGINKGO_BUILD_TESTS=ON -DGINKGO_BUILD_EXAMPLES=ON
         -DGINKGO_CONFIG_LOG_DETAILED=${CONFIG_LOG}
         -DGINKGO_RUN_EXAMPLES=${RUN_EXAMPLES}
@@ -561,6 +565,38 @@ build/amd/clang/hip/release/static:
     - private_ci
     - amd
     - gpu
+
+# mpi job test debug shared
+build/nocuda/gcc/mpi/debug/shared:
+  <<: *default_build_with_test
+  image: localhost:5000/openmpi_dcdc89fc_gko-nocuda-gnu9-llvm8
+  variables:
+    <<: *default_variables
+    BUILD_MPI: "ON"
+    BUILD_TYPE: "Debug"
+    BUILD_SHARED_LIBS: "ON"
+  only:
+    variables:
+      - $RUN_CI_TAG
+  tags:
+    - private_ci
+    - cpu
+
+# mpi job test release static
+build/nocuda/gcc/mpi/release/static:
+  <<: *default_build_with_test
+  image: localhost:5000/openmpi_dcdc89fc_gko-nocuda-gnu9-llvm8
+  variables:
+    <<: *default_variables
+    BUILD_MPI: "ON"
+    BUILD_TYPE: "Release"
+    BUILD_SHARED_LIBS: "OFF"
+  only:
+    variables:
+      - $RUN_CI_TAG
+  tags:
+    - private_ci
+    - cpu
 
 # no cuda but latest gcc and clang
 build/nocuda/gcc/core/debug/static:
