@@ -1218,8 +1218,8 @@ void absolute(std::shared_ptr<const HipExecutor> exec,
     const dim3 grid(ceildiv(num, default_block_size));
 
     hipLaunchKernelGGL(HIP_KERNEL_NAME(kernel::absolute_kernel), dim3(grid),
-                       dim3(default_block_size), 0, 0, num, source_val,
-                       result_val);
+                       dim3(default_block_size), 0, 0, num,
+                       as_hip_type(source_val), as_hip_type(result_val));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_ABSOLUTE);

@@ -1389,8 +1389,8 @@ void absolute(std::shared_ptr<const CudaExecutor> exec,
     const auto num = source->get_num_stored_elements();
     const dim3 grid(ceildiv(num, default_block_size));
 
-    kernel::absolute_kernel<<<grid, default_block_size>>>(num, source_val,
-                                                          result_val);
+    kernel::absolute_kernel<<<grid, default_block_size>>>(
+        num, as_cuda_type(source_val), as_cuda_type(result_val));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_ABSOLUTE);
