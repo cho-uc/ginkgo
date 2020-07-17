@@ -764,7 +764,7 @@ GKO_INLINE GKO_ATTRIBUTES constexpr xstd::enable_if_t<is_complex_s<T>::value,
                                                       remove_complex<T>>
 abs(const T &x)
 {
-    return squared_norm(x);
+    return sqrt(squared_norm(x));
 }
 
 
