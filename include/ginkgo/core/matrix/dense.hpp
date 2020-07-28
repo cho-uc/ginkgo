@@ -111,6 +111,7 @@ class Dense
       public WritableToMatrixData<ValueType, int32>,
       public WritableToMatrixData<ValueType, int64>,
       public Transposable,
+      public Gatherable<Dense<ValueType>>,
       public Permutable<int32>,
       public Permutable<int64>,
       public EnableAbsoluteComputation<remove_complex<Dense<ValueType>>> {
@@ -224,6 +225,12 @@ public:
     std::unique_ptr<LinOp> transpose() const override;
 
     std::unique_ptr<LinOp> conj_transpose() const override;
+
+    std::unique_ptr<Dense> gather_on_root(
+        const Array<size_type> *row_distribution) const override;
+
+    std::unique_ptr<Dense> gather_on_all(
+        const Array<size_type> *row_distribution) const override;
 
     std::unique_ptr<LinOp> row_permute(
         const Array<int32> *permutation_indices) const override;
@@ -510,14 +517,13 @@ protected:
 
 
     template <typename ExecType, typename ValuesArray>
-    static std::unique_ptr<Dense> distribute_data_impl(ExecType &exec,
-                                                       dim<2> &size,
-                                                       Array<size_type> &rows,
-                                                       ValuesArray &&values,
-                                                       size_type stride)
+    static std::unique_ptr<Dense> distribute_impl(ExecType &exec, dim<2> &size,
+                                                  Array<size_type> &rows,
+                                                  ValuesArray &&values,
+                                                  size_type stride)
     {
         rows.set_executor(exec->get_master());
-        // TODO: Is this better than passing the max size as a paramter ?
+        // TODO: Is this better than passing the max size as a parameter ?
         auto max_index_size =
             std::max_element(rows.get_const_data(),
                              rows.get_const_data() + rows.get_num_elems());
@@ -526,33 +532,33 @@ protected:
         for (auto i = 0; i < rows.get_num_elems(); ++i) {
             index_set.add_dense_row(rows.get_const_data()[i], stride);
         }
-        return Dense::create(exec, size,
-                             values.distribute_data(exec, index_set), stride);
+        return Dense::create(exec, size, values.distribute(exec, index_set),
+                             stride);
     }
 
 
     template <typename ExecType, typename IndexType, typename ValuesArray>
-    static std::unique_ptr<Dense> distribute_data_impl(
+    static std::unique_ptr<Dense> distribute_impl(
         ExecType &exec, dim<2> &size, IndexSet<IndexType> &index_set,
         ValuesArray &&values, size_type stride)
     {
-        return Dense::create(exec, size,
-                             values.distribute_data(exec, index_set), stride);
+        return Dense::create(exec, size, values.distribute(exec, index_set),
+                             stride);
     }
 
 
     template <typename ExecType>
-    static std::unique_ptr<Dense> distribute_data_impl(ExecType &exec,
-                                                       const dim<2> &size,
-                                                       size_type stride)
+    static std::unique_ptr<Dense> distribute_impl(ExecType &exec,
+                                                  const dim<2> &size,
+                                                  size_type stride)
     {
         return Dense::create(exec, size, stride);
     }
 
 
     template <typename ExecType>
-    static std::unique_ptr<Dense> distribute_data_impl(ExecType &exec,
-                                                       const dim<2> &size)
+    static std::unique_ptr<Dense> distribute_impl(ExecType &exec,
+                                                  const dim<2> &size)
     {
         return Dense::create(exec, size, size[1]);
     }
