@@ -42,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/abstract_factory.hpp>
 #include <ginkgo/core/base/dim.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/index_set.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/matrix_data.hpp>
 #include <ginkgo/core/base/polymorphic_object.hpp>
@@ -56,8 +57,6 @@ namespace matrix {
 
 template <typename ValueType>
 class Diagonal;
-
-
 }
 
 
@@ -515,7 +514,7 @@ public:
      */
     virtual std::unique_ptr<ObjType> collect_on_root(
         std::shared_ptr<gko::Executor> exec,
-        const Array<size_type> &row_distribution) const = 0;
+        const IndexSet<size_type> &row_set) const = 0;
 
     /**
      * Returns a collected ObjType of the object on all ranks.
@@ -524,7 +523,7 @@ public:
      */
     virtual std::unique_ptr<ObjType> collect_on_all(
         std::shared_ptr<gko::Executor> exec,
-        const Array<size_type> &row_distribution) const = 0;
+        const IndexSet<size_type> &row_set) const = 0;
 };
 
 
