@@ -158,11 +158,13 @@ public:
         auto exec = this->get_executor();
         if (auto chk = dynamic_cast<const gko::MpiExecutor *>(exec.get())) {
             this->validate_distributed_application_parameters(b, x);
+            this->distributed_apply_impl(make_temporary_clone(exec, b).get(),
+                                         make_temporary_clone(exec, x).get());
         } else {
             this->validate_application_parameters(b, x);
+            this->apply_impl(make_temporary_clone(exec, b).get(),
+                             make_temporary_clone(exec, x).get());
         }
-        this->apply_impl(make_temporary_clone(exec, b).get(),
-                         make_temporary_clone(exec, x).get());
         this->template log<log::Logger::linop_apply_completed>(this, b, x);
         return this;
     }
@@ -176,11 +178,13 @@ public:
         auto exec = this->get_executor();
         if (auto chk = dynamic_cast<const gko::MpiExecutor *>(exec.get())) {
             this->validate_distributed_application_parameters(b, x);
+            this->distributed_apply_impl(make_temporary_clone(exec, b).get(),
+                                         make_temporary_clone(exec, x).get());
         } else {
             this->validate_application_parameters(b, x);
+            this->apply_impl(make_temporary_clone(exec, b).get(),
+                             make_temporary_clone(exec, x).get());
         }
-        this->apply_impl(make_temporary_clone(exec, b).get(),
-                         make_temporary_clone(exec, x).get());
         this->template log<log::Logger::linop_apply_completed>(this, b, x);
         return this;
     }
@@ -204,13 +208,18 @@ public:
         if (auto chk = dynamic_cast<const gko::MpiExecutor *>(exec.get())) {
             this->validate_distributed_application_parameters(alpha, b, beta,
                                                               x);
+            this->distributed_apply_impl(
+                make_temporary_clone(exec, alpha).get(),
+                make_temporary_clone(exec, b).get(),
+                make_temporary_clone(exec, beta).get(),
+                make_temporary_clone(exec, x).get());
         } else {
             this->validate_application_parameters(alpha, b, beta, x);
+            this->apply_impl(make_temporary_clone(exec, alpha).get(),
+                             make_temporary_clone(exec, b).get(),
+                             make_temporary_clone(exec, beta).get(),
+                             make_temporary_clone(exec, x).get());
         }
-        this->apply_impl(make_temporary_clone(exec, alpha).get(),
-                         make_temporary_clone(exec, b).get(),
-                         make_temporary_clone(exec, beta).get(),
-                         make_temporary_clone(exec, x).get());
         this->template log<log::Logger::linop_advanced_apply_completed>(
             this, alpha, b, beta, x);
         return this;
@@ -228,13 +237,18 @@ public:
         if (auto chk = dynamic_cast<const gko::MpiExecutor *>(exec.get())) {
             this->validate_distributed_application_parameters(alpha, b, beta,
                                                               x);
+            this->distributed_apply_impl(
+                make_temporary_clone(exec, alpha).get(),
+                make_temporary_clone(exec, b).get(),
+                make_temporary_clone(exec, beta).get(),
+                make_temporary_clone(exec, x).get());
         } else {
             this->validate_application_parameters(alpha, b, beta, x);
+            this->apply_impl(make_temporary_clone(exec, alpha).get(),
+                             make_temporary_clone(exec, b).get(),
+                             make_temporary_clone(exec, beta).get(),
+                             make_temporary_clone(exec, x).get());
         }
-        this->apply_impl(make_temporary_clone(exec, alpha).get(),
-                         make_temporary_clone(exec, b).get(),
-                         make_temporary_clone(exec, beta).get(),
-                         make_temporary_clone(exec, x).get());
         this->template log<log::Logger::linop_advanced_apply_completed>(
             this, alpha, b, beta, x);
         return this;
@@ -297,6 +311,35 @@ protected:
      */
     virtual void apply_impl(const LinOp *alpha, const LinOp *b,
                             const LinOp *beta, LinOp *x) const = 0;
+
+    /**
+     * Implementers of LinOp should override this function instead
+     * of apply(const LinOp *, LinOp *).
+     *
+     * This function is meant to implement the distributed version of the apply
+     * for MpiExecutor.
+     *
+     * Performs the operation x = op(b), where op is this linear operator.
+     *
+     * @param b  the input vector(s) on which the operator is applied
+     * @param x  the output vector(s) where the result is stored
+     */
+    virtual void distributed_apply_impl(const LinOp *b, LinOp *x) const = 0;
+
+    /**
+     * Implementers of LinOp should override this function instead
+     * of apply(const LinOp *, const LinOp *, const LinOp *, LinOp *).
+     *
+     * This function is meant to implement the distributed version of the apply
+     * for MpiExecutor.
+     *
+     * @param alpha  scaling of the result of op(b)
+     * @param b  vector(s) on which the operator is applied
+     * @param beta  scaling of the input x
+     * @param x  output vector(s)
+     */
+    virtual void distributed_apply_impl(const LinOp *alpha, const LinOp *b,
+                                        const LinOp *beta, LinOp *x) const = 0;
 
     /**
      * Throws a DimensionMismatch exception if the parameters to `apply` are of
@@ -813,11 +856,13 @@ public:
         auto exec = this->get_executor();
         if (auto chk = dynamic_cast<const gko::MpiExecutor *>(exec.get())) {
             this->validate_distributed_application_parameters(b, x);
+            this->distributed_apply_impl(make_temporary_clone(exec, b).get(),
+                                         make_temporary_clone(exec, x).get());
         } else {
             this->validate_application_parameters(b, x);
+            this->apply_impl(make_temporary_clone(exec, b).get(),
+                             make_temporary_clone(exec, x).get());
         }
-        this->apply_impl(make_temporary_clone(exec, b).get(),
-                         make_temporary_clone(exec, x).get());
         this->template log<log::Logger::linop_apply_completed>(this, b, x);
         return self();
     }
@@ -828,11 +873,13 @@ public:
         auto exec = this->get_executor();
         if (auto chk = dynamic_cast<const gko::MpiExecutor *>(exec.get())) {
             this->validate_distributed_application_parameters(b, x);
+            this->distributed_apply_impl(make_temporary_clone(exec, b).get(),
+                                         make_temporary_clone(exec, x).get());
         } else {
             this->validate_application_parameters(b, x);
+            this->apply_impl(make_temporary_clone(exec, b).get(),
+                             make_temporary_clone(exec, x).get());
         }
-        this->apply_impl(make_temporary_clone(exec, b).get(),
-                         make_temporary_clone(exec, x).get());
         this->template log<log::Logger::linop_apply_completed>(this, b, x);
         return self();
     }
@@ -846,13 +893,18 @@ public:
         if (auto chk = dynamic_cast<const gko::MpiExecutor *>(exec.get())) {
             this->validate_distributed_application_parameters(alpha, b, beta,
                                                               x);
+            this->distributed_apply_impl(
+                make_temporary_clone(exec, alpha).get(),
+                make_temporary_clone(exec, b).get(),
+                make_temporary_clone(exec, beta).get(),
+                make_temporary_clone(exec, x).get());
         } else {
             this->validate_application_parameters(alpha, b, beta, x);
+            this->apply_impl(make_temporary_clone(exec, alpha).get(),
+                             make_temporary_clone(exec, b).get(),
+                             make_temporary_clone(exec, beta).get(),
+                             make_temporary_clone(exec, x).get());
         }
-        this->apply_impl(make_temporary_clone(exec, alpha).get(),
-                         make_temporary_clone(exec, b).get(),
-                         make_temporary_clone(exec, beta).get(),
-                         make_temporary_clone(exec, x).get());
         this->template log<log::Logger::linop_advanced_apply_completed>(
             this, alpha, b, beta, x);
         return self();
@@ -867,13 +919,18 @@ public:
         if (auto chk = dynamic_cast<const gko::MpiExecutor *>(exec.get())) {
             this->validate_distributed_application_parameters(alpha, b, beta,
                                                               x);
+            this->distributed_apply_impl(
+                make_temporary_clone(exec, alpha).get(),
+                make_temporary_clone(exec, b).get(),
+                make_temporary_clone(exec, beta).get(),
+                make_temporary_clone(exec, x).get());
         } else {
             this->validate_application_parameters(alpha, b, beta, x);
+            this->apply_impl(make_temporary_clone(exec, alpha).get(),
+                             make_temporary_clone(exec, b).get(),
+                             make_temporary_clone(exec, beta).get(),
+                             make_temporary_clone(exec, x).get());
         }
-        this->apply_impl(make_temporary_clone(exec, alpha).get(),
-                         make_temporary_clone(exec, b).get(),
-                         make_temporary_clone(exec, beta).get(),
-                         make_temporary_clone(exec, x).get());
         this->template log<log::Logger::linop_advanced_apply_completed>(
             this, alpha, b, beta, x);
         return self();
