@@ -131,7 +131,8 @@ int main(int argc, char *argv[])
     // Create multigrid factory
     auto multigrid_gen =
         mg::build()
-            .with_max_levels(99u)
+            .with_max_levels(9u)
+            .with_min_coarse_rows(1024u)
             .with_pre_smoother(gko::share(smoother_gen))
             .with_post_uses_pre(true)
             .with_rstr_prlg(gko::share(rstr_prlg_gen))

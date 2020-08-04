@@ -367,10 +367,14 @@ TEST_F(AmgxPgm, GenerateMtxIsEquivalentFrom)
     using amgx_pgm = gko::multigrid::AmgxPgm<value_type, index_type>;
     auto rstr_prlg_gen =
         gko::share(amgx_pgm::build().with_deterministic(true).on(cuda));
+    // auto rstr_prlg_matrix =
+    //     gko::as<Csr>(rstr_prlg_gen->generate(A)->get_coarse_operator());
     auto rstr_prlg_1 =
         gko::as<Csr>(rstr_prlg_gen->generate(A)->get_coarse_operator());
     auto rstr_prlg_2 =
         gko::as<Csr>(rstr_prlg_gen->generate(A)->get_coarse_operator());
+    rstr_prlg_gen->generate(rstr_prlg_1);
+    rstr_prlg_gen->generate(rstr_prlg_2);
     GKO_ASSERT_MTX_EQ_SPARSITY(rstr_prlg_1, rstr_prlg_2);
     GKO_ASSERT_MTX_NEAR(rstr_prlg_1, rstr_prlg_2, 0);
 }
