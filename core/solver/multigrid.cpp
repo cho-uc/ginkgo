@@ -42,7 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/solver/ir.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
-
+#include <iostream>
 
 #include "core/components/fill_array.hpp"
 #include "core/solver/ir_kernels.hpp"
@@ -388,6 +388,7 @@ void Multigrid<ValueType>::generate()
                         post_smoother_list_, one_op_);
         }
         matrix = rstr_prlg_list_.back()->get_coarse_operator();
+        std::cout << num_rows << " -> " << matrix->get_size()[0] << std::endl;
         num_rows = matrix->get_size()[0];
         level++;
     }
