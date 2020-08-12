@@ -168,7 +168,8 @@ protected:
      * @param size  size of the matrix
      */
     Diagonal(std::shared_ptr<const Executor> exec, size_type size)
-        : EnableLinOp<Diagonal>(exec, dim<2>{size}), values_(exec, size)
+        : EnableLinOp<Diagonal>(exec, dim<2>{size}, dim<2>{size}),
+          values_(exec, size)
     {}
 
     /**
@@ -188,7 +189,7 @@ protected:
     template <typename ValuesArray>
     Diagonal(std::shared_ptr<const Executor> exec, const size_type size,
              ValuesArray &&values)
-        : EnableLinOp<Diagonal>(exec, dim<2>(size)),
+        : EnableLinOp<Diagonal>(exec, dim<2>(size), dim<2>(size)),
           values_{exec, std::forward<ValuesArray>(values)}
     {
         GKO_ENSURE_IN_BOUNDS(size - 1, values_.get_num_elems());
@@ -198,6 +199,17 @@ protected:
 
     void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
                     LinOp *x) const override;
+
+    void distributed_apply_impl(const LinOp *b, LinOp *x) const override
+    {
+        this->apply_impl(b, x);
+    }
+
+    void distributed_apply_impl(const LinOp *alpha, const LinOp *b,
+                                const LinOp *beta, LinOp *x) const override
+    {
+        this->apply_impl(alpha, b, beta, x);
+    }
 
     void rapply_impl(const LinOp *b, LinOp *x) const;
 

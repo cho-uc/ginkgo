@@ -65,7 +65,7 @@ GKO_REGISTER_OPERATION(outplace_absolute_array,
 template <typename ValueType>
 void Diagonal<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 {
-    auto exec = this->get_executor();
+    auto exec = this->get_executor()->get_sub_executor();
 
     if (dynamic_cast<const Dense<ValueType> *>(b) &&
         dynamic_cast<Dense<ValueType> *>(x)) {
@@ -88,7 +88,7 @@ void Diagonal<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 template <typename ValueType>
 void Diagonal<ValueType>::rapply_impl(const LinOp *b, LinOp *x) const
 {
-    auto exec = this->get_executor();
+    auto exec = this->get_executor()->get_sub_executor();
 
     if (dynamic_cast<const Dense<ValueType> *>(b) &&
         dynamic_cast<Dense<ValueType> *>(x)) {
@@ -133,7 +133,7 @@ std::unique_ptr<LinOp> Diagonal<ValueType>::transpose() const
 template <typename ValueType>
 std::unique_ptr<LinOp> Diagonal<ValueType>::conj_transpose() const
 {
-    auto exec = this->get_executor();
+    auto exec = this->get_executor()->get_sub_executor();
     auto tmp = Diagonal<ValueType>::create(exec, this->get_size()[0]);
 
     exec->run(diagonal::make_conj_transpose(this, tmp.get()));
@@ -144,7 +144,7 @@ std::unique_ptr<LinOp> Diagonal<ValueType>::conj_transpose() const
 template <typename ValueType>
 void Diagonal<ValueType>::convert_to(Csr<ValueType, int32> *result) const
 {
-    auto exec = this->get_executor();
+    auto exec = this->get_executor()->get_sub_executor();
     auto tmp = Csr<ValueType, int32>::create(
         exec, this->get_size(), this->get_size()[0], result->get_strategy());
     exec->run(diagonal::make_convert_to_csr(this, tmp.get()));
@@ -162,7 +162,7 @@ void Diagonal<ValueType>::move_to(Csr<ValueType, int32> *result)
 template <typename ValueType>
 void Diagonal<ValueType>::convert_to(Csr<ValueType, int64> *result) const
 {
-    auto exec = this->get_executor();
+    auto exec = this->get_executor()->get_sub_executor();
     auto tmp = Csr<ValueType, int64>::create(
         exec, this->get_size(), this->get_size()[0], result->get_strategy());
     exec->run(diagonal::make_convert_to_csr(this, tmp.get()));
