@@ -361,6 +361,8 @@ void Multigrid<ValueType>::generate()
     size_type level = 0;
     auto matrix = system_matrix_;
     auto exec = this->get_executor();
+    std::cout << matrix->get_size()[0] << " " << matrix->get_size()[1]
+              << std::endl;
     // Always generate smoother with size = level.
     while (level < parameters_.max_levels &&
            num_rows > parameters_.min_coarse_rows) {
