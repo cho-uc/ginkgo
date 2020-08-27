@@ -928,7 +928,7 @@ __global__ __launch_bounds__(default_block_size) void extract_diagonal(
 
 
 template <typename ValueType>
-__global__ __launch_bounds__(default_block_size) void absolute_kernel(
+__global__ __launch_bounds__(default_block_size) void get_absolute_kernel(
     size_type num, const ValueType *__restrict__ source,
     remove_complex<ValueType> *__restrict__ result)
 {

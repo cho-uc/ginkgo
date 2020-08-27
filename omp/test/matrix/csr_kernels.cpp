@@ -554,8 +554,8 @@ TEST_F(Csr, AbsoluteMatrixIsEquivalentToRef)
 {
     set_up_apply_data();
 
-    auto abs_mtx = mtx->absolute();
-    auto dabs_mtx = dmtx->absolute();
+    auto abs_mtx = mtx->get_absolute();
+    auto dabs_mtx = dmtx->get_absolute();
 
     GKO_ASSERT_MTX_NEAR(static_cast<AbsMtx *>(abs_mtx.get()),
                         static_cast<AbsMtx *>(dabs_mtx.get()), 1e-14);

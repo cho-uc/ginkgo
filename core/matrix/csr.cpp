@@ -81,7 +81,7 @@ GKO_REGISTER_OPERATION(is_sorted_by_column_index,
                        csr::is_sorted_by_column_index);
 GKO_REGISTER_OPERATION(extract_diagonal, csr::extract_diagonal);
 GKO_REGISTER_OPERATION(fill_array, components::fill_array);
-GKO_REGISTER_OPERATION(absolute, csr::absolute);
+GKO_REGISTER_OPERATION(get_absolute, csr::get_absolute);
 
 
 }  // namespace csr
@@ -484,7 +484,7 @@ Csr<ValueType, IndexType>::extract_diagonal() const
 
 
 template <typename ValueType, typename IndexType>
-std::unique_ptr<LinOp> Csr<ValueType, IndexType>::absolute() const
+std::unique_ptr<LinOp> Csr<ValueType, IndexType>::get_absolute() const
 {
     using abs_type = remove_complex<ValueType>;
     using abs_csr = Csr<abs_type, IndexType>;
@@ -493,7 +493,7 @@ std::unique_ptr<LinOp> Csr<ValueType, IndexType>::absolute() const
                                    this->get_num_stored_elements());
     abs_cpy->col_idxs_ = this->col_idxs_;
     abs_cpy->row_ptrs_ = this->row_ptrs_;
-    exec->run(csr::make_absolute(this, lend(abs_cpy)));
+    exec->run(csr::make_get_absolute(this, lend(abs_cpy)));
     this->convert_strategy_helper(lend(abs_cpy));
     return std::move(abs_cpy);
 }

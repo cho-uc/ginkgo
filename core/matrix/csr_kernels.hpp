@@ -180,10 +180,11 @@ namespace kernels {
                           const matrix::Csr<ValueType, IndexType> *orig, \
                           matrix::Diagonal<ValueType> *diag)
 
-#define GKO_DECLARE_CSR_ABSOLUTE(ValueType, IndexType)             \
-    void absolute(std::shared_ptr<const DefaultExecutor> exec,     \
-                  const matrix::Csr<ValueType, IndexType> *source, \
-                  matrix::Csr<remove_complex<ValueType>, IndexType> *result)
+#define GKO_DECLARE_CSR_GET_ABSOLUTE(ValueType, IndexType) \
+    void get_absolute(                                     \
+        std::shared_ptr<const DefaultExecutor> exec,       \
+        const matrix::Csr<ValueType, IndexType> *source,   \
+        matrix::Csr<remove_complex<ValueType>, IndexType> *result)
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                         \
     template <typename ValueType, typename IndexType>                        \
@@ -231,7 +232,7 @@ namespace kernels {
     template <typename ValueType, typename IndexType>                        \
     GKO_DECLARE_CSR_EXTRACT_DIAGONAL(ValueType, IndexType);                  \
     template <typename ValueType, typename IndexType>                        \
-    GKO_DECLARE_CSR_ABSOLUTE(ValueType, IndexType)
+    GKO_DECLARE_CSR_GET_ABSOLUTE(ValueType, IndexType)
 
 
 namespace omp {

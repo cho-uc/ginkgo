@@ -130,7 +130,8 @@ class Csr : public EnableLinOp<Csr<ValueType, IndexType>>,
             public ReadableFromMatrixData<ValueType, IndexType>,
             public WritableToMatrixData<ValueType, IndexType>,
             public Transposable,
-            public Permutable<IndexType> {
+            public Permutable<IndexType>,
+            public AbsoluteComputable {
     friend class EnableCreateMethod<Csr>;
     friend class EnablePolymorphicObject<Csr, LinOp>;
     friend class Coo<ValueType, IndexType>;
@@ -705,12 +706,7 @@ public:
 
     friend class Csr<add_complex<ValueType>, IndexType>;
 
-    /**
-     * Return the matrix whose value are absolute of original matirx
-     *
-     * @return the absolute matrix
-     */
-    std::unique_ptr<LinOp> absolute() const;
+    std::unique_ptr<LinOp> get_absolute() const override;
 
     /**
      * Sorts all (value, col_idx) pairs in each row by column index

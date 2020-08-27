@@ -622,6 +622,25 @@ public:
         const = 0;
 };
 
+
+/**
+ * The absolute of a LinOp implementing this interface can be computed.
+ * get_absolute get a new LinOp which contains absolute values from a LinOp.
+ *
+ *
+ * @ingroup LinOp
+ */
+class AbsoluteComputable {
+public:
+    virtual ~AbsoluteComputable() = default;
+
+    /**
+     * Gets the absolute LinOp
+     */
+    virtual std::unique_ptr<LinOp> get_absolute() const = 0;
+};
+
+
 /**
  * The EnableLinOp mixin can be used to provide sensible default implementations
  * of the majority of the LinOp and PolymorphicObject interface.

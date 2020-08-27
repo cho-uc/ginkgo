@@ -883,9 +883,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_IS_SORTED_BY_COLUMN_INDEX);
 
 template <typename ValueType, typename IndexType>
-void absolute(std::shared_ptr<const ReferenceExecutor> exec,
-              const matrix::Csr<ValueType, IndexType> *source,
-              matrix::Csr<remove_complex<ValueType>, IndexType> *result)
+void get_absolute(std::shared_ptr<const ReferenceExecutor> exec,
+                  const matrix::Csr<ValueType, IndexType> *source,
+                  matrix::Csr<remove_complex<ValueType>, IndexType> *result)
 {
     auto result_val = result->get_values();
     auto source_val = source->get_const_values();
@@ -894,7 +894,7 @@ void absolute(std::shared_ptr<const ReferenceExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_ABSOLUTE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_GET_ABSOLUTE);
 
 
 template <typename ValueType, typename IndexType>

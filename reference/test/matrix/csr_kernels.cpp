@@ -1315,7 +1315,7 @@ TYPED_TEST(Csr, Absolute)
 
     auto mtx = gko::initialize<Mtx>(
         {{1.0, 2.0, -2.0}, {3.0, -5.0, 0.0}, {0.0, 1.0, -1.5}}, this->exec);
-    auto abs_mtx = mtx->absolute();
+    auto abs_mtx = mtx->get_absolute();
     auto abs_mtx_csr = static_cast<AbsMtx *>(abs_mtx.get());
 
     GKO_ASSERT_MTX_NEAR(abs_mtx_csr,
@@ -1377,7 +1377,7 @@ TYPED_TEST(CsrComplex, Absolute)
          {T{0.0, 0.0}, T{0.0, -1.5}, T{2.0, 0.0}}}, exec);
     // clang-format on
 
-    auto abs_mtx = mtx->absolute();
+    auto abs_mtx = mtx->get_absolute();
     auto abs_mtx_csr = static_cast<AbsMtx *>(abs_mtx.get());
 
     GKO_ASSERT_MTX_NEAR(abs_mtx_csr,
