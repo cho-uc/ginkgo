@@ -627,7 +627,6 @@ public:
  * The absolute of a LinOp implementing this interface can be computed.
  * get_absolute get a new LinOp which contains absolute values from a LinOp.
  *
- *
  * @ingroup LinOp
  */
 class AbsoluteComputable {
@@ -636,6 +635,8 @@ public:
 
     /**
      * Gets the absolute LinOp
+     *
+     * @return a pointer to the new absolute object
      */
     virtual std::unique_ptr<LinOp> get_absolute() const = 0;
 };

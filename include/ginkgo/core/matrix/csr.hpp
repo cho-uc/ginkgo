@@ -704,7 +704,7 @@ public:
 
     std::unique_ptr<Diagonal<ValueType>> extract_diagonal() const override;
 
-    friend class Csr<add_complex<ValueType>, IndexType>;
+    friend class Csr<make_complex<ValueType>, IndexType>;
 
     std::unique_ptr<LinOp> get_absolute() const override;
 

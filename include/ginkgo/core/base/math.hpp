@@ -118,6 +118,8 @@ namespace detail {
 
 /**
  * Keep the same data type if it is not complex.
+ *
+ * @tparam T  the type being removed complex
  */
 template <typename T>
 struct remove_complex_impl {
@@ -126,27 +128,35 @@ struct remove_complex_impl {
 
 /**
  * Use the underlying real type if it is complex type.
+ *
+ * @tparam T  the type being removed complex
  */
 template <typename T>
 struct remove_complex_impl<std::complex<T>> {
     using type = T;
 };
 
+
 /**
  * Use the complex type if it is not complex.
+ *
+ * @tparam T  the type being made complex
  */
 template <typename T>
-struct add_complex_impl {
+struct make_complex_impl {
     using type = std::complex<T>;
 };
 
 /**
  * Use the same type if it is complex type.
+ *
+ * @tparam T  the type being made complex
  */
 template <typename T>
-struct add_complex_impl<std::complex<T>> {
+struct make_complex_impl<std::complex<T>> {
     using type = std::complex<T>;
 };
+
 
 template <typename T>
 struct is_complex_impl : public std::integral_constant<bool, false> {};
@@ -185,6 +195,8 @@ struct cpx_real_type<std::complex<T>> {
 /**
  * Obtains a real counterpart of a std::complex type, and leaves the type
  * unchanged if it is not a complex type.
+ *
+ * @tparam T  the type being removed complex
  */
 template <typename T>
 using remove_complex = typename detail::remove_complex_impl<T>::type;
@@ -193,9 +205,11 @@ using remove_complex = typename detail::remove_complex_impl<T>::type;
 /**
  * Obtains a complex type of non-complex type, and leaves the type
  * unchanged if it is a complex type.
+ *
+ * @tparam T  the type being made complex
  */
 template <typename T>
-using add_complex = typename detail::add_complex_impl<T>::type;
+using make_complex = typename detail::make_complex_impl<T>::type;
 
 
 /**
