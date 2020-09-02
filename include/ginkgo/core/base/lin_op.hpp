@@ -723,6 +723,15 @@ public:
      * @param data  the matrix_data structure
      */
     virtual void read(const matrix_data<ValueType, IndexType> &data) = 0;
+
+    /**
+     * Reads a matrix from a matrix_data structure.
+     *
+     * @param data  the matrix_data structure
+     * @param distribution  the array that contains the distribution
+     */
+    virtual void read(const matrix_data<ValueType, IndexType> &data,
+                      const Array<size_type> &distribution) = 0;
 };
 
 
