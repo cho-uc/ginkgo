@@ -414,7 +414,8 @@ protected:
         itype total_num_nnz = row_idxs.get_num_elems();
         mpi_exec->broadcast(&total_num_nnz, 1, root_rank);
         auto row_ptrs = Array<itype>{exec->get_master()};
-        auto row_idxs_cpy = Array<itype>{exec->get_master()};
+        auto row_idxs_cpy =
+            Array<itype>{exec->get_master(), row_idxs.get_num_elems()};
         row_idxs_cpy = row_idxs;
         if (my_rank == root_rank) {
             row_ptrs = Array<itype>(exec->get_master(),

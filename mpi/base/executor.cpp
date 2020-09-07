@@ -47,7 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 
 
-bool MpiExecutor::init_finalize::is_initialized()
+bool mpi::init_finalize::is_initialized()
 {
     int flag = 0;
     GKO_ASSERT_NO_MPI_ERRORS(MPI_Initialized(&flag));
@@ -55,7 +55,7 @@ bool MpiExecutor::init_finalize::is_initialized()
 }
 
 
-bool MpiExecutor::init_finalize::is_finalized()
+bool mpi::init_finalize::is_finalized()
 {
     int flag = 0;
     GKO_ASSERT_NO_MPI_ERRORS(MPI_Finalized(&flag));
@@ -63,22 +63,22 @@ bool MpiExecutor::init_finalize::is_finalized()
 }
 
 
-MpiExecutor::init_finalize::init_finalize(int &argc, char **&argv,
-                                          const size_type num_threads)
+mpi::init_finalize::init_finalize(int &argc, char **&argv,
+                                  const size_type num_threads)
 {
     auto flag = is_initialized();
     if (!flag) {
         this->required_thread_support_ = MPI_THREAD_SERIALIZED;
-        GKO_ASSERT_NO_MPI_ERRORS(MPI_Init_thread(
-            &(this->num_args_), &(this->args_), this->required_thread_support_,
-            &(this->provided_thread_support_)));
+        GKO_ASSERT_NO_MPI_ERRORS(
+            MPI_Init_thread(&argc, &argv, this->required_thread_support_,
+                            &(this->provided_thread_support_)));
     } else {
         GKO_MPI_INITIALIZED;
     }
 }
 
 
-MpiExecutor::init_finalize::~init_finalize() noexcept(false)
+mpi::init_finalize::~init_finalize() noexcept(false)
 {
     auto flag = is_finalized();
     if (!flag) {
@@ -97,7 +97,7 @@ MpiExecutor::request_manager<MPI_Request> MpiExecutor::create_requests_array(
 }
 
 
-void MpiExecutor::synchronize_communicator(MPI_Comm &comm) const
+void MpiExecutor::synchronize_communicator(MPI_Comm comm) const
 {
     GKO_ASSERT_NO_MPI_ERRORS(MPI_Barrier(comm));
 }

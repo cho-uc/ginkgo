@@ -16,6 +16,11 @@ if [ ! "${EXECUTOR}" ]; then
     EXECUTOR="cuda"
 fi
 
+if [ ! "${NUM_PROCS}" ]; then
+    echo "NUM_PROCS   environment variable not set - assuming \"2\"" 1>&2
+    NUM_PROCS=2
+fi
+
 if [ ! "${SEGMENTS}" ]; then
     echo "SEGMENTS    environment variable not set - running entire suite" 1>&2
     SEGMENTS=1
@@ -131,10 +136,20 @@ compute_matrix_statistics() {
 run_conversion_benchmarks() {
     [ "${DRY_RUN}" == "true" ] && return
     cp "$1" "$1.imd" # make sure we're not loosing the original input
-    ./conversions/conversions --backup="$1.bkp" --double_buffer="$1.bkp2" \
-                --executor="${EXECUTOR}" --formats="${FORMATS}" \
-                --device_id="${DEVICE_ID}" \
-                <"$1.imd" 2>&1 >"$1"
+    EXEC_CHECK=$(echo "${EXECUTOR}" | cut -c1-3)
+    echo " EXEC Check:   ${EXEC_CHECK}"
+    if [[ "${EXEC_CHECK}" == "mpi" ]]; then
+        echo "######## Running with mpirun"
+        mpirun -n ${NUM_PROCS} ./conversions/conversions --backup="$1.bkp" --double_buffer="$1.bkp2" \
+               --executor="${EXECUTOR}" --formats="${FORMATS}" \
+               --device_id="${DEVICE_ID}" \
+               <"$1.imd" 2>&1 >"$1"
+    else
+        ./conversions/conversions --backup="$1.bkp" --double_buffer="$1.bkp2" \
+                                  --executor="${EXECUTOR}" --formats="${FORMATS}" \
+                                  --device_id="${DEVICE_ID}" \
+                                  <"$1.imd" 2>&1 >"$1"
+    fi
     keep_latest "$1" "$1.bkp" "$1.bkp2" "$1.imd"
 }
 
@@ -147,10 +162,21 @@ run_conversion_benchmarks() {
 run_spmv_benchmarks() {
     [ "${DRY_RUN}" == "true" ] && return
     cp "$1" "$1.imd" # make sure we're not loosing the original input
-    ./spmv/spmv --backup="$1.bkp" --double_buffer="$1.bkp2" \
-                --executor="${EXECUTOR}" --formats="${FORMATS}" \
-                --device_id="${DEVICE_ID}" \
-                <"$1.imd" 2>&1 >"$1"
+    EXEC_CHECK=$(echo "${EXECUTOR}" | cut -c1-3)
+    echo " EXEC Check:   ${EXEC_CHECK}"
+    if [[ "${EXEC_CHECK}" == "mpi" ]]; then
+        echo "Running with mpirun"
+        mpirun -n ${NUM_PROCS} ./spmv/spmv-mpi --backup="$1.bkp" --double_buffer="$1.bkp2" \
+               --executor="${EXECUTOR}" --formats="${FORMATS}" \
+               --device_id="${DEVICE_ID}" \
+               --filename="$1.imd"
+                2>&1 >"$1"
+    else
+        ./spmv/spmv --backup="$1.bkp" --double_buffer="$1.bkp2" \
+                    --executor="${EXECUTOR}" --formats="${FORMATS}" \
+                    --device_id="${DEVICE_ID}" \
+                    <"$1.imd" 2>&1 >"$1"
+    fi
     keep_latest "$1" "$1.bkp" "$1.bkp2" "$1.imd"
 }
 
@@ -163,12 +189,24 @@ run_spmv_benchmarks() {
 run_solver_benchmarks() {
     [ "${DRY_RUN}" == "true" ] && return
     cp "$1" "$1.imd" # make sure we're not loosing the original input
-    ./solver/solver --backup="$1.bkp" --double_buffer="$1.bkp2" \
-                    --executor="${EXECUTOR}" --solvers="${SOLVERS}" \
-                    --preconditioners="${PRECONDS}" \
-                    --max_iters=${SOLVERS_MAX_ITERATIONS} --rel_res_goal=${SOLVERS_PRECISION} \
-                    ${DETAILED_STR} --device_id="${DEVICE_ID}" \
-                    <"$1.imd" 2>&1 >"$1"
+    EXEC_CHECK=$(echo "${EXECUTOR}" | cut -c1-3)
+    echo " EXEC Check:   ${EXEC_CHECK}"
+    if [[ "${EXEC_CHECK}" == "mpi" ]]; then
+        echo "######## Running with mpirun"
+        mpirun -n ${NUM_PROCS} ./solver/solver --backup="$1.bkp" --double_buffer="$1.bkp2" \
+               --executor="${EXECUTOR}" --solvers="${SOLVERS}" \
+               --preconditioners="${PRECONDS}" \
+               --max_iters=${SOLVERS_MAX_ITERATIONS} --rel_res_goal=${SOLVERS_PRECISION} \
+               ${DETAILED_STR} --device_id="${DEVICE_ID}" \
+               <"$1.imd" 2>&1 >"$1"
+    else
+        ./solver/solver --backup="$1.bkp" --double_buffer="$1.bkp2" \
+                        --executor="${EXECUTOR}" --solvers="${SOLVERS}" \
+                        --preconditioners="${PRECONDS}" \
+                        --max_iters=${SOLVERS_MAX_ITERATIONS} --rel_res_goal=${SOLVERS_PRECISION} \
+                        ${DETAILED_STR} --device_id="${DEVICE_ID}" \
+                        <"$1.imd" 2>&1 >"$1"
+    fi
     keep_latest "$1" "$1.bkp" "$1.bkp2" "$1.imd"
 }
 
@@ -188,13 +226,26 @@ run_preconditioner_benchmarks() {
         for prec in ${PRECISIONS}; do
             echo -e "\t\t running jacobi ($prec) for block size ${bsize}" 1>&2
             cp "$1" "$1.imd" # make sure we're not loosing the original input
-            ./preconditioner/preconditioner \
-                --backup="$1.bkp" --double_buffer="$1.bkp2" \
-                --executor="${EXECUTOR}" --preconditioners="jacobi" \
-                --max_block_size="${bsize}" \
-                --storage_optimization="${prec}" \
-                --device_id="${DEVICE_ID}" \
-                <"$1.imd" 2>&1 >"$1"
+            EXEC_CHECK=$(echo "${EXECUTOR}" | cut -c1-3)
+            echo " EXEC Check:   ${EXEC_CHECK}"
+            if [[ "${EXEC_CHECK}" == "mpi" ]]; then
+                echo "######## Running with mpirun"
+                mpirun -n ${NUM_PROCS} ./preconditioner/preconditioner \
+                       --backup="$1.bkp" --double_buffer="$1.bkp2" \
+                       --executor="${EXECUTOR}" --preconditioners="jacobi" \
+                       --max_block_size="${bsize}" \
+                       --storage_optimization="${prec}" \
+                       --device_id="${DEVICE_ID}" \
+                       <"$1.imd" 2>&1 >"$1"
+            else
+                ./preconditioner/preconditioner \
+                    --backup="$1.bkp" --double_buffer="$1.bkp2" \
+                    --executor="${EXECUTOR}" --preconditioners="jacobi" \
+                    --max_block_size="${bsize}" \
+                    --storage_optimization="${prec}" \
+                    --device_id="${DEVICE_ID}" \
+                    <"$1.imd" 2>&1 >"$1"
+            fi
             keep_latest "$1" "$1.bkp" "$1.bkp2" "$1.imd"
         done
     done

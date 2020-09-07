@@ -30,6 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+
 #include <ginkgo/ginkgo.hpp>
 
 
@@ -66,6 +67,8 @@ void apply_spmv(const char *format_name, std::shared_ptr<gko::Executor> exec,
                 rapidjson::MemoryPoolAllocator<> &allocator)
 {
     try {
+        auto mpi_exec = gko::as<gko::MpiExecutor>(exec.get());
+        auto rank = mpi_exec->get_my_rank();
         auto &spmv_case = test_case["spmv"];
         add_or_set_member(spmv_case, format_name,
                           rapidjson::Value(rapidjson::kObjectType), allocator);
@@ -136,13 +139,23 @@ int main(int argc, char *argv[])
                                     "\nThe number of right hand sides is " +
                                     std::to_string(FLAGS_nrhs) + "\n";
     print_general_information(extra_information);
+    std::string exec_string = FLAGS_executor;
+    auto exec_substr = exec_string.substr(0, 3);
+    gko::mpi::init_finalize mpi_init{argc, argv, 1};
     auto exec = executor_factory.at(FLAGS_executor)();
+    auto mpi_exec = gko::as<const gko::MpiExecutor>(exec.get());
+    auto rank = mpi_exec->get_my_rank();
+    auto num_ranks = mpi_exec->get_num_ranks();
+
     auto engine = get_engine();
     auto formats = split(FLAGS_formats, ',');
 
-    rapidjson::IStreamWrapper jcin(std::cin);
+    std::ifstream ifs(FLAGS_filename);
+    rapidjson::IStreamWrapper jc_ifs(ifs);
     rapidjson::Document test_cases;
-    test_cases.ParseStream(jcin);
+    test_cases.ParseStream(jc_ifs);
+
+
     if (!test_cases.IsArray()) {
         print_config_error_and_exit();
     }
@@ -196,10 +209,13 @@ int main(int argc, char *argv[])
                 exec->synchronize();
             }
             for (const auto &format_name : formats) {
+                exec->synchronize();
                 apply_spmv(format_name.c_str(), exec, data, lend(b), lend(x),
                            lend(answer), test_case, allocator);
+                exec->synchronize();
                 std::clog << "Current state:" << std::endl
                           << test_cases << std::endl;
+                exec->synchronize();
                 if (spmv_case[format_name.c_str()]["completed"].GetBool()) {
                     auto performance =
                         spmv_case[format_name.c_str()]["time"].GetDouble();
@@ -221,6 +237,14 @@ int main(int argc, char *argv[])
                       << std::endl;
         }
     }
+
+    std::ofstream ofs(FLAGS_filename + "_" + std::to_string(rank));
+    rapidjson::OStreamWrapper jc_ofs(ofs);
+    rapidjson::PrettyWriter<rapidjson::OStreamWrapper, rapidjson::UTF8<>,
+                            rapidjson::UTF8<>, rapidjson::CrtAllocator,
+                            rapidjson::kWriteNanAndInfFlag>
+        writer(jc_ofs);
+    test_cases.Accept(writer);
 
     std::cout << test_cases << std::endl;
 }

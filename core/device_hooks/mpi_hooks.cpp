@@ -65,22 +65,21 @@ std::string MpiError::get_error(int64)
 }
 
 
-bool MpiExecutor::init_finalize::is_finalized() GKO_NOT_COMPILED(mpi);
+bool mpi::init_finalize::is_finalized() GKO_NOT_COMPILED(mpi);
 
 
-bool MpiExecutor::init_finalize::is_initialized() GKO_NOT_COMPILED(mpi);
+bool mpi::init_finalize::is_initialized() GKO_NOT_COMPILED(mpi);
 
 
-MpiExecutor::init_finalize::init_finalize(int &argc, char **&argv,
-                                          const size_type num_threads)
+mpi::init_finalize::init_finalize(int &argc, char **&argv,
+                                  const size_type num_threads)
     GKO_NOT_COMPILED(mpi);
 
 
-MpiExecutor::init_finalize::~init_finalize() noexcept(false)
-    GKO_NOT_COMPILED(mpi);
+mpi::init_finalize::~init_finalize() noexcept(false) GKO_NOT_COMPILED(mpi);
 
 
-void MpiExecutor::synchronize_communicator(MPI_Comm &comm) const
+void MpiExecutor::synchronize_communicator(MPI_Comm comm) const
     GKO_NOT_COMPILED(mpi);
 
 

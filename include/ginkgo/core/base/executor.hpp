@@ -1387,8 +1387,41 @@ enum class op_type {
     max_val_and_loc = 12,
     min_val_and_loc = 13
 };
-}
 
+
+/*
+ * Class that allows an RAII of initialization and calls MPI_Finalize at the
+ * end of its scope. Therefore, this must be called before an MpiExecutor is
+ * created.
+ */
+class init_finalize {
+public:
+    init_finalize(int &argc, char **&argv, const size_type num_threads);
+
+    init_finalize() = delete;
+
+    init_finalize(init_finalize &other) = delete;
+
+    init_finalize &operator=(const init_finalize &other) = delete;
+
+    init_finalize(init_finalize &&other) = delete;
+
+    init_finalize const &operator=(init_finalize &&other) = delete;
+
+    static bool is_finalized();
+
+    static bool is_initialized();
+
+    ~init_finalize() noexcept(false);
+
+private:
+    int num_args_;
+    int required_thread_support_;
+    int provided_thread_support_;
+    char **args_;
+};
+
+}  // namespace mpi
 
 /**
  * This is the Executor subclass which represents a distributed executor.
@@ -1410,38 +1443,6 @@ public:
     using mpi_exec_info = machine_config::topology<MpiExecutor>;
     template <typename T>
     using request_manager = std::unique_ptr<T, std::function<void(T *)>>;
-
-    /*
-     * Class that allows an RAII of initialization and calls MPI_Finalize at the
-     * end of its scope. Therefore, this must be called before an MpiExecutor is
-     * created.
-     */
-    class init_finalize {
-    public:
-        init_finalize(int &argc, char **&argv, const size_type num_threads);
-
-        init_finalize() = delete;
-
-        init_finalize(init_finalize &other) = delete;
-
-        init_finalize &operator=(const init_finalize &other) = delete;
-
-        init_finalize(init_finalize &&other) = delete;
-
-        init_finalize const &operator=(init_finalize &&other) = delete;
-
-        static bool is_finalized();
-
-        static bool is_initialized();
-
-        ~init_finalize() noexcept(false);
-
-    private:
-        int num_args_;
-        int required_thread_support_;
-        int provided_thread_support_;
-        char **args_;
-    };
 
     /**
      * Creates a new MpiExecutor.
@@ -1481,7 +1482,7 @@ public:
 
     void synchronize() const override;
 
-    void synchronize_communicator(MPI_Comm &comm) const;
+    void synchronize_communicator(MPI_Comm comm) const;
 
     void set_communicator(MPI_Comm comm);
 
@@ -1558,8 +1559,8 @@ protected:
     MpiExecutor(std::shared_ptr<Executor> sub_executor)
         : num_ranks_(1), sub_executor_(sub_executor)
     {
-        GKO_ASSERT(init_finalize::is_initialized() &&
-                   !(init_finalize::is_finalized()));
+        GKO_ASSERT(mpi::init_finalize::is_initialized() &&
+                   !(mpi::init_finalize::is_finalized()));
         this->num_ranks_ = this->get_num_ranks();
         this->root_rank_ = 0;
         // Set it to MPI_COMM_WORLD by default

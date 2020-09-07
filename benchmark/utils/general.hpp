@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <algorithm>
 #include <array>
+#include <cstdio>
 #include <fstream>
 #include <functional>
 #include <map>
@@ -53,6 +54,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <gflags/gflags.h>
 #include <rapidjson/document.h>
+#include <rapidjson/filereadstream.h>
 #include <rapidjson/istreamwrapper.h>
 #include <rapidjson/ostreamwrapper.h>
 #include <rapidjson/prettywriter.h>
@@ -71,6 +73,8 @@ DEFINE_bool(overwrite, false,
 DEFINE_string(backup, "",
               "If set, the value is used as a file path of a backup"
               " file where results are written after each test");
+
+DEFINE_string(filename, "", "The filename to write the results to");
 
 DEFINE_string(double_buffer, "",
               "If --backup is set, this variable can be set"
@@ -271,8 +275,11 @@ const std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
          }},
         {"mpi-cuda",
          [] {
-             return gko::MpiExecutor::create(gko::CudaExecutor::create(
-                 FLAGS_device_id, gko::OmpExecutor::create(), true));
+             auto mpi_exec_ref =
+                 gko::MpiExecutor::create(gko::ReferenceExecutor::create());
+             return gko::MpiExecutor::create(
+                 gko::CudaExecutor::create(mpi_exec_ref->get_my_rank(),
+                                           gko::OmpExecutor::create(), true));
          }},
         {"hip",
          [] {
@@ -280,8 +287,11 @@ const std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
                                              gko::OmpExecutor::create(), true);
          }},
         {"mpi-hip", [] {
-             return gko::MpiExecutor::create(gko::HipExecutor::create(
-                 FLAGS_device_id, gko::OmpExecutor::create(), true));
+             auto mpi_exec_ref =
+                 gko::MpiExecutor::create(gko::ReferenceExecutor::create());
+             return gko::MpiExecutor::create(
+                 gko::HipExecutor::create(mpi_exec_ref->get_my_rank(),
+                                          gko::OmpExecutor::create(), true));
          }}};
 
 
