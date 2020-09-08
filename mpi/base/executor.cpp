@@ -186,7 +186,9 @@ void MpiExecutor::recv(RecvType *recv_buffer, const int recv_count,
     auto recv_type = helpers::mpi::get_mpi_type(recv_buffer[0]);
     if (!non_blocking) {
         bindings::mpi::recv(recv_buffer, recv_count, recv_type, source_rank,
-                            recv_tag, this->mpi_comm_, this->mpi_status_.get());
+                            recv_tag, this->mpi_comm_,
+                            (this->mpi_status_.get() ? this->mpi_status_.get()
+                                                     : MPI_STATUS_IGNORE));
     } else {
         bindings::mpi::i_recv(recv_buffer, recv_count, recv_type, source_rank,
                               recv_tag, this->mpi_comm_, nullptr);

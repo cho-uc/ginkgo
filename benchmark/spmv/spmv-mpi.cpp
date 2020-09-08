@@ -61,7 +61,8 @@ DEFINE_uint32(nrhs, 1, "The number of right hand sides");
 // This function supposes that management of `FLAGS_overwrite` is done before
 // calling it
 void apply_spmv(const char *format_name, std::shared_ptr<gko::Executor> exec,
-                const gko::matrix_data<etype> &data, const vec<etype> *b,
+                const gko::matrix_data<etype> &data,
+                const gko::Array<gko::size_type> &row_dist, const vec<etype> *b,
                 const vec<etype> *x, const vec<etype> *answer,
                 rapidjson::Value &test_case,
                 rapidjson::MemoryPoolAllocator<> &allocator)
@@ -149,6 +150,7 @@ int main(int argc, char *argv[])
 
     auto engine = get_engine();
     auto formats = split(FLAGS_formats, ',');
+    auto row_dists_vec = split(FLAGS_row_dists, ',');
 
     std::ifstream ifs(FLAGS_filename);
     rapidjson::IStreamWrapper jc_ifs(ifs);
@@ -209,28 +211,33 @@ int main(int argc, char *argv[])
                 exec->synchronize();
             }
             for (const auto &format_name : formats) {
-                exec->synchronize();
-                apply_spmv(format_name.c_str(), exec, data, lend(b), lend(x),
-                           lend(answer), test_case, allocator);
-                exec->synchronize();
-                std::clog << "Current state:" << std::endl
-                          << test_cases << std::endl;
-                exec->synchronize();
-                if (spmv_case[format_name.c_str()]["completed"].GetBool()) {
-                    auto performance =
-                        spmv_case[format_name.c_str()]["time"].GetDouble();
-                    if (best_format == "none" ||
-                        performance < best_performance) {
-                        best_format = format_name;
-                        best_performance = performance;
-                        add_or_set_member(
-                            test_case["optimal"], "spmv",
-                            rapidjson::Value(best_format.c_str(), allocator)
-                                .Move(),
-                            allocator);
+                for (const auto &row_dist_type : row_dists_vec) {
+                    auto row_dist = distributed::row_distribution.at(
+                        row_dist_type)(exec, data);
+                    exec->synchronize();
+                    apply_spmv(format_name.c_str(), exec, data, row_dist,
+                               lend(b), lend(x), lend(answer), test_case,
+                               allocator);
+                    exec->synchronize();
+                    std::clog << "Current state:" << std::endl
+                              << test_cases << std::endl;
+                    exec->synchronize();
+                    if (spmv_case[format_name.c_str()]["completed"].GetBool()) {
+                        auto performance =
+                            spmv_case[format_name.c_str()]["time"].GetDouble();
+                        if (best_format == "none" ||
+                            performance < best_performance) {
+                            best_format = format_name;
+                            best_performance = performance;
+                            add_or_set_member(
+                                test_case["optimal"], "spmv",
+                                rapidjson::Value(best_format.c_str(), allocator)
+                                    .Move(),
+                                allocator);
+                        }
                     }
+                    backup_results(test_cases);
                 }
-                backup_results(test_cases);
             }
         } catch (const std::exception &e) {
             std::cerr << "Error setting up matrix data, what(): " << e.what()
@@ -238,7 +245,9 @@ int main(int argc, char *argv[])
         }
     }
 
-    std::ofstream ofs(FLAGS_filename + "_" + std::to_string(rank));
+    std::string fname = FLAGS_filename;
+    auto fsubstr = fname.substr(0, fname.size() - 9);
+    std::ofstream ofs(fsubstr + "_" + std::to_string(rank) + ".json");
     rapidjson::OStreamWrapper jc_ofs(ofs);
     rapidjson::PrettyWriter<rapidjson::OStreamWrapper, rapidjson::UTF8<>,
                             rapidjson::UTF8<>, rapidjson::CrtAllocator,

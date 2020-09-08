@@ -74,6 +74,10 @@ DEFINE_string(backup, "",
               "If set, the value is used as a file path of a backup"
               " file where results are written after each test");
 
+DEFINE_string(row_dists, "equal",
+              "The distribution of the rows for the different ranks, one of: "
+              "equal, random, metis, one-d, two-d");
+
 DEFINE_string(filename, "", "The filename to write the results to");
 
 DEFINE_string(double_buffer, "",
@@ -257,6 +261,57 @@ void backup_results(rapidjson::Document &results)
 }
 
 
+using size_type = gko::size_type;
+
+namespace distributed {
+
+gko::Array<size_type> get_equal_distribution(
+    std::shared_ptr<const gko::Executor> exec, const gko::matrix_data<> &data)
+{
+    return gko::Array<size_type>{exec, data.size[0]};
+}
+
+
+gko::Array<size_type> get_random_distribution(
+    std::shared_ptr<const gko::Executor> exec, const gko::matrix_data<> &data)
+{
+    return gko::Array<size_type>{exec, data.size[0]};
+}
+
+
+gko::Array<size_type> get_metis_distribution(
+    std::shared_ptr<const gko::Executor> exec, const gko::matrix_data<> &data)
+{
+    return gko::Array<size_type>{exec, data.size[0]};
+}
+
+
+gko::Array<size_type> get_oned_distribution(
+    std::shared_ptr<const gko::Executor> exec, const gko::matrix_data<> &data)
+{
+    return gko::Array<size_type>{exec, data.size[0]};
+}
+
+
+gko::Array<size_type> get_twod_distribution(
+    std::shared_ptr<const gko::Executor> exec, const gko::matrix_data<> &data)
+{
+    return gko::Array<size_type>{exec, data.size[0]};
+}
+
+
+// row distribution mapping
+const std::map<std::string, std::function<gko::Array<size_type>(
+                                std::shared_ptr<const gko::Executor>,
+                                const gko::matrix_data<> &)>>
+    row_distribution{{"equal", get_equal_distribution},
+                     {"random", get_random_distribution},
+                     {"metis", get_metis_distribution},
+                     {"one-d", get_oned_distribution},
+                     {"two-d", get_twod_distribution}};
+
+}  // namespace distributed
+
 // executor mapping
 const std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
     executor_factory{
@@ -318,12 +373,35 @@ std::unique_ptr<vec<ValueType>> create_vector(
     return res;
 }
 
+
+// creates a zero vector
+template <typename ValueType>
+std::unique_ptr<vec<ValueType>> create_vector(
+    std::shared_ptr<const gko::Executor> exec, gko::size_type size,
+    const gko::Array<gko::size_type> &row_dist)
+{
+    auto res = vec<ValueType>::create(exec);
+    res->read(gko::matrix_data<ValueType>(gko::dim<2>{size, 1}), row_dist);
+    return res;
+}
+
+
 template <typename ValueType>
 std::unique_ptr<vec<ValueType>> create_matrix(
     std::shared_ptr<const gko::Executor> exec, gko::dim<2> size)
 {
     auto res = vec<ValueType>::create(exec);
     res->read(gko::matrix_data<ValueType>(size));
+    return res;
+}
+
+template <typename ValueType>
+std::unique_ptr<vec<ValueType>> create_matrix(
+    std::shared_ptr<const gko::Executor> exec, gko::dim<2> size,
+    const gko::Array<gko::size_type> &row_dist)
+{
+    auto res = vec<ValueType>::create(exec);
+    res->read(gko::matrix_data<ValueType>(size), row_dist);
     return res;
 }
 
@@ -341,6 +419,20 @@ std::unique_ptr<vec<ValueType>> create_matrix(
 }
 
 
+// creates a random matrix
+template <typename ValueType, typename RandomEngine>
+std::unique_ptr<vec<ValueType>> create_matrix(
+    std::shared_ptr<const gko::Executor> exec, gko::dim<2> size,
+    const gko::Array<gko::size_type> &row_dist, RandomEngine &engine)
+{
+    auto res = vec<ValueType>::create(exec);
+    res->read(gko::matrix_data<ValueType>(
+                  size, std::uniform_real_distribution<>(-1.0, 1.0), engine),
+              row_dist);
+    return res;
+}
+
+
 // creates a random vector
 template <typename ValueType, typename RandomEngine>
 std::unique_ptr<vec<ValueType>> create_vector(
@@ -348,6 +440,17 @@ std::unique_ptr<vec<ValueType>> create_vector(
     RandomEngine &engine)
 {
     return create_matrix<ValueType>(exec, gko::dim<2>{size, 1}, engine);
+}
+
+
+// creates a random vector
+template <typename ValueType, typename RandomEngine>
+std::unique_ptr<vec<ValueType>> create_vector(
+    std::shared_ptr<const gko::Executor> exec, gko::size_type size,
+    const gko::Array<gko::size_type> &row_dist, RandomEngine &engine)
+{
+    return create_matrix<ValueType>(exec, gko::dim<2>{size, 1}, engine,
+                                    row_dist);
 }
 
 

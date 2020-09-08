@@ -166,6 +166,27 @@ using csr = gko::matrix::Csr<>;
  * @return a `unique_pointer` to the created matrix
  */
 template <typename MatrixType>
+std::unique_ptr<MatrixType> read_matrix_from_data_dist(
+    std::shared_ptr<const gko::Executor> exec, const gko::matrix_data<> &data,
+    const gko::Array<gko::size_type> &row_distribution)
+{
+    auto mat = MatrixType::create(std::move(exec));
+    mat->read(data, row_distribution);
+    return mat;
+}
+
+/**
+ * Creates a Ginkgo matrix from the intermediate data representation format
+ * gko::matrix_data.
+ *
+ * @param exec  the executor where the matrix will be put
+ * @param data  the data represented in the intermediate representation format
+ *
+ * @tparam MatrixType  the Ginkgo matrix type (such as `gko::matrix::Csr<>`)
+ *
+ * @return a `unique_pointer` to the created matrix
+ */
+template <typename MatrixType>
 std::unique_ptr<MatrixType> read_matrix_from_data(
     std::shared_ptr<const gko::Executor> exec, const gko::matrix_data<> &data)
 {
@@ -188,11 +209,72 @@ std::unique_ptr<MatrixType> read_matrix_from_data(
         return mat;                                                      \
     }
 
+/**
+ * Creates a Ginkgo matrix from the intermediate data representation format
+ * gko::matrix_data with support for variable arguments.
+ *
+ * @param MATRIX_TYPE  the Ginkgo matrix type (such as `gko::matrix::Csr<>`)
+ */
+#define READ_MATRIX_DIST(MATRIX_TYPE, ...)                            \
+    [](std::shared_ptr<const gko::Executor> exec,                     \
+       const gko::matrix_data<> &data,                                \
+       const gko::Array<gko::size_type> &row_dist)                    \
+        -> std::unique_ptr<MATRIX_TYPE> {                             \
+        auto mat = MATRIX_TYPE::create(std::move(exec), __VA_ARGS__); \
+        mat->read(data, row_dist);                                    \
+        return mat;                                                   \
+    }
 
-// clang-format off
+
+const std::map<std::string, std::function<std::unique_ptr<gko::LinOp>(
+                                std::shared_ptr<const gko::Executor>,
+                                const gko::matrix_data<> &,
+                                const gko::Array<gko::size_type> &)>>
+    matrix_factory_dist{
+        {"csr", READ_MATRIX_DIST(csr, std::make_shared<csr::automatical>())},
+        {"csri", READ_MATRIX_DIST(csr, std::make_shared<csr::load_balance>())},
+        {"csrm", READ_MATRIX_DIST(csr, std::make_shared<csr::merge_path>())},
+        {"csrc", READ_MATRIX_DIST(csr, std::make_shared<csr::classical>())},
+        {"coo", read_matrix_from_data_dist<gko::matrix::Coo<>>},
+        {"ell", read_matrix_from_data_dist<gko::matrix::Ell<>>},
+        {"hybrid", read_matrix_from_data_dist<hybrid>},
+        {"hybrid0", READ_MATRIX_DIST(
+                        hybrid, std::make_shared<hybrid::imbalance_limit>(0))},
+        {"hybrid25",
+         READ_MATRIX_DIST(hybrid,
+                          std::make_shared<hybrid::imbalance_limit>(0.25))},
+        {"hybrid33",
+         READ_MATRIX_DIST(
+             hybrid, std::make_shared<hybrid::imbalance_limit>(1.0 / 3.0))},
+        {"hybrid40",
+         READ_MATRIX_DIST(hybrid,
+                          std::make_shared<hybrid::imbalance_limit>(0.4))},
+        {"hybrid60",
+         READ_MATRIX_DIST(hybrid,
+                          std::make_shared<hybrid::imbalance_limit>(0.6))},
+        {"hybrid80",
+         READ_MATRIX_DIST(hybrid,
+                          std::make_shared<hybrid::imbalance_limit>(0.8))},
+        {"hybridlimit0",
+         READ_MATRIX_DIST(
+             hybrid, std::make_shared<hybrid::imbalance_bounded_limit>(0))},
+        {"hybridlimit25",
+         READ_MATRIX_DIST(
+             hybrid, std::make_shared<hybrid::imbalance_bounded_limit>(0.25))},
+        {"hybridlimit33",
+         READ_MATRIX_DIST(
+             hybrid,
+             std::make_shared<hybrid::imbalance_bounded_limit>(1.0 / 3.0))},
+        {"hybridminstorage",
+         READ_MATRIX_DIST(hybrid,
+                          std::make_shared<hybrid::minimal_storage_limit>())},
+        {"sellp", read_matrix_from_data_dist<gko::matrix::Sellp<>>}};
+
+
 const std::map<std::string, std::function<std::unique_ptr<gko::LinOp>(
                                 std::shared_ptr<const gko::Executor>,
                                 const gko::matrix_data<> &)>>
+    // clang-format off
     matrix_factory{
         {"csr", READ_MATRIX(csr, std::make_shared<csr::automatical>())},
         {"csri", READ_MATRIX(csr, std::make_shared<csr::load_balance>())},
