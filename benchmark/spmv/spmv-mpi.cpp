@@ -60,7 +60,8 @@ DEFINE_uint32(nrhs, 1, "The number of right hand sides");
 
 // This function supposes that management of `FLAGS_overwrite` is done before
 // calling it
-void apply_spmv(const char *format_name, std::shared_ptr<gko::Executor> exec,
+void apply_spmv(const char *format_name, const char *row_dist_type,
+                std::shared_ptr<gko::Executor> exec,
                 const gko::matrix_data<etype> &data,
                 const gko::Array<gko::size_type> &row_dist, const vec<etype> *b,
                 const vec<etype> *x, const vec<etype> *answer,
@@ -71,16 +72,17 @@ void apply_spmv(const char *format_name, std::shared_ptr<gko::Executor> exec,
         auto mpi_exec = gko::as<gko::MpiExecutor>(exec.get());
         auto rank = mpi_exec->get_my_rank();
         auto &spmv_case = test_case["spmv"];
-        add_or_set_member(spmv_case, format_name,
+        auto &format_case = spmv_case[format_name];
+        add_or_set_member(spmv_case[format_name], row_dist_type,
                           rapidjson::Value(rapidjson::kObjectType), allocator);
 
         auto storage_logger = std::make_shared<StorageLogger>(exec);
         exec->add_logger(storage_logger);
-        auto system_matrix =
-            share(formats::matrix_factory.at(format_name)(exec, data));
+        auto system_matrix = share(
+            formats::matrix_factory_dist.at(format_name)(exec, data, row_dist));
 
         exec->remove_logger(gko::lend(storage_logger));
-        storage_logger->write_data(spmv_case[format_name], allocator);
+        storage_logger->write_data(format_case[row_dist_type], allocator);
         // check the residual
         if (FLAGS_detailed) {
             auto x_clone = clone(x);
@@ -89,7 +91,7 @@ void apply_spmv(const char *format_name, std::shared_ptr<gko::Executor> exec,
             exec->synchronize();
             double max_relative_norm2 =
                 compute_max_relative_norm2(lend(x_clone), lend(answer));
-            add_or_set_member(spmv_case[format_name], "max_relative_norm2",
+            add_or_set_member(format_case[format_name], "max_relative_norm2",
                               max_relative_norm2, allocator);
         }
         // warm run
@@ -112,15 +114,16 @@ void apply_spmv(const char *format_name, std::shared_ptr<gko::Executor> exec,
             time +=
                 std::chrono::duration_cast<std::chrono::nanoseconds>(toc - tic);
         }
-        add_or_set_member(spmv_case[format_name], "time",
+        add_or_set_member(format_case[row_dist_type], "time",
                           static_cast<double>(time.count()) / FLAGS_repetitions,
                           allocator);
 
         // compute and write benchmark data
-        add_or_set_member(spmv_case[format_name], "completed", true, allocator);
-    } catch (const std::exception &e) {
-        add_or_set_member(test_case["spmv"][format_name], "completed", false,
+        add_or_set_member(format_case[row_dist_type], "completed", true,
                           allocator);
+    } catch (const std::exception &e) {
+        add_or_set_member(test_case["spmv"][format_name][row_dist_type],
+                          "completed", false, allocator);
         std::cerr << "Error when processing test case " << test_case << "\n"
                   << "what(): " << e.what() << std::endl;
     }
@@ -178,6 +181,10 @@ int main(int argc, char *argv[])
                 all_of(begin(formats), end(formats),
                        [&spmv_case](const std::string &s) {
                            return spmv_case.HasMember(s.c_str());
+                       }) &&
+                all_of(begin(row_dists_vec), end(row_dists_vec),
+                       [&spmv_case](const std::string &s) {
+                           return spmv_case.HasMember(s.c_str());
                        })) {
                 continue;
             }
@@ -192,7 +199,7 @@ int main(int argc, char *argv[])
                                           engine);
             std::clog << "Matrix is of size (" << data.size[0] << ", "
                       << data.size[1] << ")" << std::endl;
-            std::string best_format("none");
+            std::string best_format_and_dist("none");
             auto best_performance = 0.0;
             if (!test_case.HasMember("optimal")) {
                 test_case.AddMember("optimal",
@@ -203,35 +210,52 @@ int main(int argc, char *argv[])
             // Compute the result from ginkgo::coo as the correct answer
             auto answer = vec<etype>::create(exec);
             if (FLAGS_detailed) {
-                auto system_matrix =
-                    share(formats::matrix_factory.at("coo")(exec, data));
+                auto row_dist =
+                    distributed::row_distribution.at("equal")(exec, data);
+                GKO_ASSERT_CONDITION(distributed::verify_dist(
+                                         exec, row_dist, data.size[0]) == true);
+
+                auto system_matrix = share(formats::matrix_factory_dist.at(
+                    "coo")(exec, data, row_dist));
                 answer->copy_from(lend(x));
                 exec->synchronize();
                 system_matrix->apply(lend(b), lend(answer));
                 exec->synchronize();
             }
             for (const auto &format_name : formats) {
+                auto &spmv_case = test_case["spmv"];
+                add_or_set_member(spmv_case, format_name.c_str(),
+                                  rapidjson::Value(rapidjson::kObjectType),
+                                  allocator);
                 for (const auto &row_dist_type : row_dists_vec) {
                     auto row_dist = distributed::row_distribution.at(
                         row_dist_type)(exec, data);
+                    GKO_ASSERT(distributed::verify_distribution(exec, row_dist,
+                                                                data.size[0]));
                     exec->synchronize();
-                    apply_spmv(format_name.c_str(), exec, data, row_dist,
-                               lend(b), lend(x), lend(answer), test_case,
-                               allocator);
+                    apply_spmv(format_name.c_str(), row_dist_type.c_str(), exec,
+                               data, row_dist, lend(b), lend(x), lend(answer),
+                               test_case, allocator);
                     exec->synchronize();
                     std::clog << "Current state:" << std::endl
                               << test_cases << std::endl;
                     exec->synchronize();
-                    if (spmv_case[format_name.c_str()]["completed"].GetBool()) {
+                    if (spmv_case[format_name.c_str()][row_dist_type.c_str()]
+                                 ["completed"]
+                                     .GetBool()) {
                         auto performance =
-                            spmv_case[format_name.c_str()]["time"].GetDouble();
-                        if (best_format == "none" ||
+                            spmv_case[format_name.c_str()]
+                                     [row_dist_type.c_str()]["time"]
+                                         .GetDouble();
+                        if (best_format_and_dist == "none" ||
                             performance < best_performance) {
-                            best_format = format_name;
+                            best_format_and_dist =
+                                format_name + "-" + row_dist_type;
                             best_performance = performance;
                             add_or_set_member(
                                 test_case["optimal"], "spmv",
-                                rapidjson::Value(best_format.c_str(), allocator)
+                                rapidjson::Value(best_format_and_dist.c_str(),
+                                                 allocator)
                                     .Move(),
                                 allocator);
                         }

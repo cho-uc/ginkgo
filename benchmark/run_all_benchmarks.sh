@@ -40,6 +40,11 @@ if [ ! "${FORMATS}" ]; then
     FORMATS="csr,coo,ell,hybrid,sellp"
 fi
 
+if [ ! "${ROW_DISTS}" ]; then
+    echo "ROW_DISTS    environment variable not set - assuming \"equal,oned,twod\"" 1>&2
+    ROW_DISTS="equal,oned,twod"
+fi
+
 if [ ! "${SOLVERS}" ]; then
     echo "SOLVERS    environment variable not set - assuming \"bicgstab,cg,cgs,fcg,gmres\"" 1>&2
     SOLVERS="bicgstab,cg,cgs,fcg,gmres"
@@ -167,7 +172,7 @@ run_spmv_benchmarks() {
     if [[ "${EXEC_CHECK}" == "mpi" ]]; then
         echo "Running with mpirun"
         mpirun -n ${NUM_PROCS} ./spmv/spmv-mpi --backup="$1.bkp" --double_buffer="$1.bkp2" \
-               --executor="${EXECUTOR}" --formats="${FORMATS}" \
+               --executor="${EXECUTOR}" --formats="${FORMATS}" --row_dists="${ROW_DISTS}" \
                --device_id="${DEVICE_ID}" \
                --filename="$1.imd"
                 2>&1 >"$1"

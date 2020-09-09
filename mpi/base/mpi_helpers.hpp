@@ -61,6 +61,7 @@ namespace mpi {
                   "semi-colon warnings")
 
 
+GKO_MPI_DATATYPE(bool, MPI_C_BOOL);
 GKO_MPI_DATATYPE(char, MPI_CHAR);
 GKO_MPI_DATATYPE(unsigned char, MPI_UNSIGNED_CHAR);
 GKO_MPI_DATATYPE(unsigned, MPI_UNSIGNED);

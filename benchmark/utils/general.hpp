@@ -76,7 +76,7 @@ DEFINE_string(backup, "",
 
 DEFINE_string(row_dists, "equal",
               "The distribution of the rows for the different ranks, one of: "
-              "equal, random, metis, one-d, two-d");
+              "equal,metis, one-d, two-d");
 
 DEFINE_string(filename, "", "The filename to write the results to");
 
@@ -265,23 +265,99 @@ using size_type = gko::size_type;
 
 namespace distributed {
 
-gko::Array<size_type> get_equal_distribution(
-    std::shared_ptr<const gko::Executor> exec, const gko::matrix_data<> &data)
+#define DIST_COMMON_FUNCS                                  \
+    GKO_ASSERT_MPI_EXEC(exec.get());                       \
+    auto mpi_exec = gko::as<gko::MpiExecutor>(exec.get()); \
+    auto num_ranks = mpi_exec->get_num_ranks();            \
+    auto my_rank = mpi_exec->get_my_rank()
+
+
+void print_arr(const gko::Array<size_type> &arr)
 {
-    return gko::Array<size_type>{exec, data.size[0]};
+    for (auto i = 0; i < arr.get_num_elems(); ++i) {
+        std::cout << " at " << i << " : " << arr.get_const_data()[i]
+                  << std::endl;
+    }
+}
+
+bool find_duplicates(const size_type val, size_type index,
+                     const size_type *data, size_type length)
+{
+    auto count = 0;
+    for (auto i = 0; i < length; ++i) {
+        if (i != index && val == data[i]) {
+            count++;
+        }
+    }
+    if (count == 0) {
+        return false;
+    } else {
+        return true;
+    }
 }
 
 
-gko::Array<size_type> get_random_distribution(
+bool verify_dist(std::shared_ptr<gko::Executor> exec,
+                 const gko::Array<size_type> &arr, const size_type num_rows)
+{
+    GKO_ASSERT_MPI_EXEC(exec.get());
+    auto mpi_exec = gko::as<gko::MpiExecutor>(exec.get());
+    auto num_ranks = mpi_exec->get_num_ranks();
+    auto my_rank = mpi_exec->get_my_rank();
+    auto root_rank = mpi_exec->get_root_rank();
+    int dup_flag = 1;
+    int max_flag = 0;
+    int min_flag = 0;
+    auto local_num_rows = arr.get_num_elems();
+    auto index_set = gko::IndexSet<size_type>{num_rows};
+    index_set.add_indices(arr.get_const_data(),
+                          arr.get_const_data() + local_num_rows);
+    auto gathered_dist = arr.gather_on_root(exec, index_set);
+    if (my_rank == root_rank) {
+        auto arr_val = gathered_dist.get_const_data();
+        auto length = gathered_dist.get_num_elems();
+        for (auto i = 0; i < length; ++i) {
+            dup_flag |= !(find_duplicates(arr_val[i], i, arr_val, length));
+            if (!dup_flag) {
+                std::clog << "################ Failed at index " << i
+                          << std::endl;
+            }
+        }
+        max_flag =
+            (*std::max_element(gathered_dist.get_const_data(),
+                               gathered_dist.get_const_data() + length)) ==
+            (gathered_dist.get_num_elems() - 1);
+
+        min_flag =
+            (*std::min_element(gathered_dist.get_const_data(),
+                               gathered_dist.get_const_data() + length)) == 0;
+    }
+
+    mpi_exec->broadcast(&min_flag, 1, root_rank);
+    mpi_exec->broadcast(&max_flag, 1, root_rank);
+    mpi_exec->broadcast(&dup_flag, 1, root_rank);
+    if (!dup_flag || !max_flag || !min_flag)
+        return false;
+    else
+        return true;
+}
+
+gko::Array<size_type> get_equal_distribution(
     std::shared_ptr<const gko::Executor> exec, const gko::matrix_data<> &data)
 {
-    return gko::Array<size_type>{exec, data.size[0]};
+    DIST_COMMON_FUNCS;
+    auto local_num_rows = static_cast<size_type>(data.size[0] / num_ranks);
+    auto dist = gko::Array<size_type>{exec->get_master(), local_num_rows};
+    std::iota(dist.get_data(), dist.get_data() + local_num_rows,
+              my_rank * local_num_rows);
+    return dist;
 }
 
 
 gko::Array<size_type> get_metis_distribution(
     std::shared_ptr<const gko::Executor> exec, const gko::matrix_data<> &data)
 {
+    DIST_COMMON_FUNCS;
     return gko::Array<size_type>{exec, data.size[0]};
 }
 
@@ -289,6 +365,7 @@ gko::Array<size_type> get_metis_distribution(
 gko::Array<size_type> get_oned_distribution(
     std::shared_ptr<const gko::Executor> exec, const gko::matrix_data<> &data)
 {
+    DIST_COMMON_FUNCS;
     return gko::Array<size_type>{exec, data.size[0]};
 }
 
@@ -296,6 +373,7 @@ gko::Array<size_type> get_oned_distribution(
 gko::Array<size_type> get_twod_distribution(
     std::shared_ptr<const gko::Executor> exec, const gko::matrix_data<> &data)
 {
+    DIST_COMMON_FUNCS;
     return gko::Array<size_type>{exec, data.size[0]};
 }
 
@@ -305,10 +383,9 @@ const std::map<std::string, std::function<gko::Array<size_type>(
                                 std::shared_ptr<const gko::Executor>,
                                 const gko::matrix_data<> &)>>
     row_distribution{{"equal", get_equal_distribution},
-                     {"random", get_random_distribution},
                      {"metis", get_metis_distribution},
-                     {"one-d", get_oned_distribution},
-                     {"two-d", get_twod_distribution}};
+                     {"oned", get_oned_distribution},
+                     {"twod", get_twod_distribution}};
 
 }  // namespace distributed
 
