@@ -198,7 +198,7 @@ run_solver_benchmarks() {
     echo " EXEC Check:   ${EXEC_CHECK}"
     if [[ "${EXEC_CHECK}" == "mpi" ]]; then
         echo "######## Running with mpirun"
-        mpirun -n ${NUM_PROCS} ./solver/solver --backup="$1.bkp" --double_buffer="$1.bkp2" \
+        mpirun -report-bindings -n ${NUM_PROCS} ./solver/solver --backup="$1.bkp" --double_buffer="$1.bkp2" \
                --executor="${EXECUTOR}" --solvers="${SOLVERS}" \
                --preconditioners="${PRECONDS}" \
                --max_iters=${SOLVERS_MAX_ITERATIONS} --rel_res_goal=${SOLVERS_PRECISION} \

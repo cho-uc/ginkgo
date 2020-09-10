@@ -126,12 +126,7 @@ struct dim {
     }
 
     /**
-     * Checks if all dimensions evaluate to true.
-     *
-     * For standard arithmetic types, this is equivalent to all dimensions being
-     * different than zero.
-     *
-     * @return true if and only if all dimensions evaluate to true
+     * Overload ostream operator to print the dimension to the output stream.
      */
     friend GKO_ATTRIBUTES std::ostream &operator<<(std::ostream &os,
                                                    const dim &out_dim)
@@ -212,6 +207,13 @@ struct dim<1u, DimensionType> {
     friend constexpr GKO_ATTRIBUTES dim operator*(const dim &x, const dim &y)
     {
         return dim(x.first_ * y.first_);
+    }
+
+    friend GKO_ATTRIBUTES std::ostream &operator<<(std::ostream &os,
+                                                   const dim &x)
+    {
+        os << x.first_;
+        return os;
     }
 
 private:

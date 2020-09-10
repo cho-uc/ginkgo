@@ -148,6 +148,7 @@ int main(int argc, char *argv[])
     gko::mpi::init_finalize mpi_init{argc, argv, 1};
     auto exec = executor_factory.at(FLAGS_executor)();
     auto mpi_exec = gko::as<const gko::MpiExecutor>(exec.get());
+    auto host_mpi_exec = gko::MpiExecutor::create(exec->get_master());
     auto rank = mpi_exec->get_my_rank();
     auto num_ranks = mpi_exec->get_num_ranks();
 
@@ -197,8 +198,6 @@ int main(int argc, char *argv[])
                                           engine);
             auto x = create_matrix<etype>(exec, gko::dim<2>{data.size[0], nrhs},
                                           engine);
-            std::clog << "Matrix is of size (" << data.size[0] << ", "
-                      << data.size[1] << ")" << std::endl;
             std::string best_format_and_dist("none");
             auto best_performance = 0.0;
             if (!test_case.HasMember("optimal")) {
@@ -212,11 +211,14 @@ int main(int argc, char *argv[])
             if (FLAGS_detailed) {
                 auto row_dist =
                     distributed::row_distribution.at("equal")(exec, data);
-                GKO_ASSERT_CONDITION(distributed::verify_dist(
-                                         exec, row_dist, data.size[0]) == true);
-
+                GKO_ASSERT_CONDITION(
+                    distributed::verify_dist(exec, host_mpi_exec, row_dist,
+                                             data.size[0]) == true);
                 auto system_matrix = share(formats::matrix_factory_dist.at(
                     "coo")(exec, data, row_dist));
+                std::clog << "Matrix is of size " << data.size
+                          << " Distributed matrix size "
+                          << system_matrix->get_size() << std::endl;
                 answer->copy_from(lend(x));
                 exec->synchronize();
                 system_matrix->apply(lend(b), lend(answer));
@@ -230,8 +232,8 @@ int main(int argc, char *argv[])
                 for (const auto &row_dist_type : row_dists_vec) {
                     auto row_dist = distributed::row_distribution.at(
                         row_dist_type)(exec, data);
-                    GKO_ASSERT(distributed::verify_distribution(exec, row_dist,
-                                                                data.size[0]));
+                    GKO_ASSERT(distributed::verify_distribution(
+                        exec, host_mpi_exec, row_dist, data.size[0]));
                     exec->synchronize();
                     apply_spmv(format_name.c_str(), row_dist_type.c_str(), exec,
                                data, row_dist, lend(b), lend(x), lend(answer),

@@ -298,6 +298,7 @@ bool find_duplicates(const size_type val, size_type index,
 
 
 bool verify_dist(std::shared_ptr<gko::Executor> exec,
+                 std::shared_ptr<gko::Executor> host_exec,
                  const gko::Array<size_type> &arr, const size_type num_rows)
 {
     GKO_ASSERT_MPI_EXEC(exec.get());
@@ -313,24 +314,25 @@ bool verify_dist(std::shared_ptr<gko::Executor> exec,
     index_set.add_indices(arr.get_const_data(),
                           arr.get_const_data() + local_num_rows);
     auto gathered_dist = arr.gather_on_root(exec, index_set);
+    auto h_gathered_dist = gko::Array<size_type>{host_exec};
+    h_gathered_dist = gathered_dist;
     if (my_rank == root_rank) {
-        auto arr_val = gathered_dist.get_const_data();
-        auto length = gathered_dist.get_num_elems();
+        auto arr_val = h_gathered_dist.get_const_data();
+        auto length = h_gathered_dist.get_num_elems();
         for (auto i = 0; i < length; ++i) {
             dup_flag |= !(find_duplicates(arr_val[i], i, arr_val, length));
             if (!dup_flag) {
-                std::clog << "################ Failed at index " << i
-                          << std::endl;
+                std::clog << "ERROR: Failed at index " << i << std::endl;
             }
         }
         max_flag =
-            (*std::max_element(gathered_dist.get_const_data(),
-                               gathered_dist.get_const_data() + length)) ==
-            (gathered_dist.get_num_elems() - 1);
+            (*std::max_element(h_gathered_dist.get_const_data(),
+                               h_gathered_dist.get_const_data() + length)) ==
+            (h_gathered_dist.get_num_elems() - 1);
 
         min_flag =
-            (*std::min_element(gathered_dist.get_const_data(),
-                               gathered_dist.get_const_data() + length)) == 0;
+            (*std::min_element(h_gathered_dist.get_const_data(),
+                               h_gathered_dist.get_const_data() + length)) == 0;
     }
 
     mpi_exec->broadcast(&min_flag, 1, root_rank);
