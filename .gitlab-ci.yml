@@ -64,7 +64,7 @@ stages:
         -DGINKGO_DEVEL_TOOLS=OFF -DGINKGO_BUILD_REFERENCE=${BUILD_REFERENCE}
         -DGINKGO_BUILD_OMP=${BUILD_OMP} -DGINKGO_BUILD_CUDA=${BUILD_CUDA}
         -DGINKGO_BUILD_HIP=${BUILD_HIP}
-        -DGINKGO_BUILD_MPI=${BUILD_MPI} -DMPI_EXECUTABLE_SUFFIX=${MPI_SUFFIX}
+        -DGINKGO_BUILD_MPI=${BUILD_MPI} -DGINKGO_MPI_EXEC_SUFFIX=${MPI_SUFFIX}
         -DMPI_RUN_AS_ROOT=${MPI_RUN_AS_ROOT}
         -DGINKGO_BUILD_TESTS=ON -DGINKGO_BUILD_EXAMPLES=ON
         -DGINKGO_RUN_EXAMPLES=${RUN_EXAMPLES}
@@ -93,7 +93,7 @@ stages:
         -DGINKGO_DEVEL_TOOLS=OFF -DGINKGO_BUILD_REFERENCE=${BUILD_REFERENCE}
         -DGINKGO_BUILD_OMP=${BUILD_OMP} -DGINKGO_BUILD_CUDA=${BUILD_CUDA}
         -DGINKGO_BUILD_HIP=${BUILD_HIP}
-        -DGINKGO_BUILD_MPI=${BUILD_MPI} -DMPI_EXECUTABLE_SUFFIX=${MPI_SUFFIX}
+        -DGINKGO_BUILD_MPI=${BUILD_MPI} -DGINKGO_MPI_EXEC_SUFFIX=${MPI_SUFFIX}
         -DMPI_RUN_AS_ROOT=${MPI_RUN_AS_ROOT}
         -DGINKGO_BUILD_TESTS=ON -DGINKGO_BUILD_EXAMPLES=ON
         -DGINKGO_CONFIG_LOG_DETAILED=${CONFIG_LOG}
@@ -572,7 +572,7 @@ build/amd/clang/hip/release/static:
 # mpi job test debug shared
 build/nocuda/gcc/mpi/debug/shared:
   <<: *default_build_with_test
-  image: localhost:5000/openmpi_dcdc89fc_gko-nocuda-gnu9-llvm8
+  image: localhost:5000/gko-nocuda-gnu9-llvm8
   variables:
     <<: *default_variables
     BUILD_MPI: "ON"
@@ -588,7 +588,7 @@ build/nocuda/gcc/mpi/debug/shared:
 # mpi job test release static
 build/nocuda/gcc/mpi/release/static:
   <<: *default_build_with_test
-  image: localhost:5000/openmpi_dcdc89fc_gko-nocuda-gnu9-llvm8
+  image: localhost:5000/gko-nocuda-gnu9-llvm8
   variables:
     <<: *default_variables
     BUILD_MPI: "ON"

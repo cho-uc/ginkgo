@@ -413,7 +413,7 @@ const std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
                  gko::MpiExecutor::create(gko::ReferenceExecutor::create());
              return gko::MpiExecutor::create(
                  gko::CudaExecutor::create(mpi_exec_ref->get_my_rank(),
-                                           gko::OmpExecutor::create(), true));
+                                           gko::OmpExecutor::create(), false));
          }},
         {"hip",
          [] {

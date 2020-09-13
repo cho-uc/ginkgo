@@ -64,19 +64,23 @@ protected:
         int argc = 0;
         exec = gko::ReferenceExecutor::create();
         host = gko::ReferenceExecutor::create();
-        GKO_ASSERT_NO_MPI_ERRORS(MPI_Comm_rank(MPI_COMM_WORLD, &rank));
-        mpi_exec = gko::MpiExecutor::create(gko::CudaExecutor::create(0, host));
+        mpi_exec2 = gko::MpiExecutor::create(host);
+        rank = mpi_exec2->get_local_rank(mpi_exec2->get_communicator());
+        cuda_exec = gko::CudaExecutor::create(rank, host);
+        mpi_exec = gko::MpiExecutor::create(cuda_exec);
+        sub_exec = mpi_exec->get_sub_executor();
         auto ndev = gko::as<gko::CudaExecutor>(mpi_exec->get_sub_executor())
                         ->get_num_devices();
-        GKO_ASSERT(ndev > 0);
-        mpi_exec2 = gko::MpiExecutor::create(host);
-        sub_exec = mpi_exec->get_sub_executor();
         rank = mpi_exec->get_my_rank();
+        GKO_ASSERT(ndev > 0);
+        auto dev_id =
+            gko::as<gko::CudaExecutor>(sub_exec.get())->get_device_id();
+        auto dev_id_mspace =
+            gko::as<gko::CudaMemorySpace>(
+                gko::as<gko::CudaExecutor>(sub_exec.get())->get_mem_space())
+
+                ->get_device_id();
         ASSERT_GT(mpi_exec->get_num_ranks(), 1);
-        mtx1 = gko::initialize<Mtx>({I<T>({1.0, -1.0}), I<T>({-2.0, 2.0})},
-                                    sub_exec);
-        mtx2 =
-            gko::initialize<Mtx>({{1.0, 2.0, 3.0}, {0.5, 1.5, 2.5}}, sub_exec);
     }
 
     void TearDown()
@@ -107,6 +111,7 @@ protected:
     std::shared_ptr<gko::MpiExecutor> mpi_exec2;
     std::shared_ptr<const gko::Executor> exec;
     std::shared_ptr<gko::Executor> host;
+    std::shared_ptr<gko::Executor> cuda_exec;
     std::shared_ptr<const gko::Executor> sub_exec;
     std::unique_ptr<Mtx> mtx1;
     std::unique_ptr<Mtx> mtx2;

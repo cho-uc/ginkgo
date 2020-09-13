@@ -30,6 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+#include <mpi.h>
 
 #include <ginkgo/ginkgo.hpp>
 
@@ -70,6 +71,7 @@ void apply_spmv(const char *format_name, const char *row_dist_type,
 {
     try {
         auto mpi_exec = gko::as<gko::MpiExecutor>(exec.get());
+        auto sub_exec = exec->get_sub_executor();
         auto rank = mpi_exec->get_my_rank();
         auto &spmv_case = test_case["spmv"];
         auto &format_case = spmv_case[format_name];
@@ -78,9 +80,17 @@ void apply_spmv(const char *format_name, const char *row_dist_type,
 
         auto storage_logger = std::make_shared<StorageLogger>(exec);
         exec->add_logger(storage_logger);
+        auto tic = std::chrono::steady_clock::now();
         auto system_matrix = share(
             formats::matrix_factory_dist.at(format_name)(exec, data, row_dist));
+        auto toc = std::chrono::steady_clock::now();
 
+        add_or_set_member(
+            format_case[row_dist_type], "mat-distribute",
+            static_cast<double>(
+                std::chrono::duration_cast<std::chrono::nanoseconds>(toc - tic)
+                    .count()),
+            allocator);
         exec->remove_logger(gko::lend(storage_logger));
         storage_logger->write_data(format_case[row_dist_type], allocator);
         // check the residual
@@ -106,11 +116,11 @@ void apply_spmv(const char *format_name, const char *row_dist_type,
         for (unsigned int i = 0; i < FLAGS_repetitions; i++) {
             auto x_clone = clone(x);
             exec->synchronize();
-            auto tic = std::chrono::steady_clock::now();
+            tic = std::chrono::steady_clock::now();
             system_matrix->apply(lend(b), lend(x_clone));
 
             exec->synchronize();
-            auto toc = std::chrono::steady_clock::now();
+            toc = std::chrono::steady_clock::now();
             time +=
                 std::chrono::duration_cast<std::chrono::nanoseconds>(toc - tic);
         }
@@ -211,9 +221,9 @@ int main(int argc, char *argv[])
             if (FLAGS_detailed) {
                 auto row_dist =
                     distributed::row_distribution.at("equal")(exec, data);
-                GKO_ASSERT_CONDITION(
-                    distributed::verify_dist(exec, host_mpi_exec, row_dist,
-                                             data.size[0]) == true);
+                // GKO_ASSERT_CONDITION(
+                //     distributed::verify_dist(exec, host_mpi_exec, row_dist,
+                //                              data.size[0]) == true);
                 auto system_matrix = share(formats::matrix_factory_dist.at(
                     "coo")(exec, data, row_dist));
                 std::clog << "Matrix is of size " << data.size
@@ -232,8 +242,8 @@ int main(int argc, char *argv[])
                 for (const auto &row_dist_type : row_dists_vec) {
                     auto row_dist = distributed::row_distribution.at(
                         row_dist_type)(exec, data);
-                    GKO_ASSERT(distributed::verify_distribution(
-                        exec, host_mpi_exec, row_dist, data.size[0]));
+                    // GKO_ASSERT_CONDITION(distributed::verify_dist(
+                    //     exec, host_mpi_exec, row_dist, data.size[0]));
                     exec->synchronize();
                     apply_spmv(format_name.c_str(), row_dist_type.c_str(), exec,
                                data, row_dist, lend(b), lend(x), lend(answer),

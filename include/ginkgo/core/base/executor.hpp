@@ -1071,8 +1071,9 @@ protected:
     }
 
     CudaExecutor(int device_id, std::shared_ptr<MemorySpace> mem_space,
-                 std::shared_ptr<Executor> master)
-        : device_id_(device_id),
+                 std::shared_ptr<Executor> master, bool device_reset = false)
+        : EnableDeviceReset{device_reset},
+          device_id_(device_id),
           master_(master),
           num_warps_per_sm_(0),
           num_multiprocessor_(0),
@@ -1475,6 +1476,10 @@ public:
     void set_root_rank(int rank) { root_rank_ = rank; }
 
     int get_root_rank() const { return root_rank_; }
+
+    int get_local_rank(MPI_Comm comm) const;
+
+    double get_walltime() const;
 
     std::shared_ptr<MemorySpace> get_mem_space() noexcept override;
 

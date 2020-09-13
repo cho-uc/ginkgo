@@ -21,6 +21,11 @@ if [ ! "${NUM_PROCS}" ]; then
     NUM_PROCS=2
 fi
 
+if [ ! "${MPI_EXEC}" ]; then
+    echo "MPI_EXEC   environment variable not set - assuming \"mpirun -n ${NUM_PROCS}\"" 1>&2
+    MPI_EXEC="mpirun -n ${NUM_PROCS}"
+fi
+
 if [ ! "${SEGMENTS}" ]; then
     echo "SEGMENTS    environment variable not set - running entire suite" 1>&2
     SEGMENTS=1
@@ -171,11 +176,13 @@ run_spmv_benchmarks() {
     echo " EXEC Check:   ${EXEC_CHECK}"
     if [[ "${EXEC_CHECK}" == "mpi" ]]; then
         echo "Running with mpirun"
-        mpirun -n ${NUM_PROCS} ./spmv/spmv-mpi --backup="$1.bkp" --double_buffer="$1.bkp2" \
+        exec_mpi="${MPI_EXEC} ./spmv/spmv-mpi --backup="$1.bkp" --double_buffer="$1.bkp2" \
                --executor="${EXECUTOR}" --formats="${FORMATS}" --row_dists="${ROW_DISTS}" \
                --device_id="${DEVICE_ID}" \
                --filename="$1.imd"
-                2>&1 >"$1"
+                2>&1 >"$1" "
+        echo ${exec_mpi}
+        exec ${exec_mpi}
     else
         ./spmv/spmv --backup="$1.bkp" --double_buffer="$1.bkp2" \
                     --executor="${EXECUTOR}" --formats="${FORMATS}" \

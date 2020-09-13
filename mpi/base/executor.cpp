@@ -106,6 +106,7 @@ void MpiExecutor::synchronize_communicator(MPI_Comm comm) const
 void MpiExecutor::synchronize() const
 {
     GKO_ASSERT_NO_MPI_ERRORS(MPI_Barrier(MPI_COMM_WORLD));
+    this->sub_executor_->synchronize();
 }
 
 
@@ -127,11 +128,30 @@ std::shared_ptr<MpiExecutor> MpiExecutor::create(
 }
 
 
+double MpiExecutor::get_walltime() const
+{
+    double wtime = 0.0;
+    wtime = MPI_Wtime();
+    return wtime;
+}
+
+
 int MpiExecutor::get_my_rank() const
 {
     auto my_rank = 0;
     GKO_ASSERT_NO_MPI_ERRORS(MPI_Comm_rank(MPI_COMM_WORLD, &my_rank));
     return my_rank;
+}
+
+
+int MpiExecutor::get_local_rank(MPI_Comm comm) const
+{
+    MPI_Comm local_comm;
+    int rank;
+    GKO_ASSERT_NO_MPI_ERRORS(MPI_Comm_split_type(comm, MPI_COMM_TYPE_SHARED, 0,
+                                                 MPI_INFO_NULL, &local_comm));
+    GKO_ASSERT_NO_MPI_ERRORS(MPI_Comm_rank(local_comm, &rank));
+    return rank;
 }
 
 
