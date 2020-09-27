@@ -65,7 +65,7 @@ protected:
         exec = gko::ReferenceExecutor::create();
         host = gko::ReferenceExecutor::create();
         mpi_exec2 = gko::MpiExecutor::create(host);
-        rank = mpi_exec2->get_local_rank(mpi_exec2->get_communicator());
+        rank = mpi_exec2->get_my_rank();
         cuda_exec = gko::CudaExecutor::create(rank, host);
         mpi_exec = gko::MpiExecutor::create(cuda_exec);
         sub_exec = mpi_exec->get_sub_executor();

@@ -67,9 +67,10 @@ protected:
         int argc = 0;
         exec = gko::ReferenceExecutor::create();
         host = gko::ReferenceExecutor::create();
-        GKO_ASSERT_NO_MPI_ERRORS(MPI_Comm_rank(MPI_COMM_WORLD, &rank));
-        mpi_exec = gko::MpiExecutor::create(gko::CudaExecutor::create(0, host));
         mpi_exec2 = gko::MpiExecutor::create(host);
+        rank = mpi_exec2->get_my_rank();
+        cuda_exec = gko::CudaExecutor::create(rank, host);
+        mpi_exec = gko::MpiExecutor::create(cuda_exec);
         sub_exec = mpi_exec->get_sub_executor();
         sub_exec2 = mpi_exec2->get_sub_executor();
         rank = mpi_exec->get_my_rank();
@@ -114,6 +115,7 @@ protected:
     std::shared_ptr<gko::MpiExecutor> mpi_exec2;
     std::shared_ptr<const gko::Executor> exec;
     std::shared_ptr<gko::Executor> host;
+    std::shared_ptr<gko::Executor> cuda_exec;
     std::shared_ptr<const gko::Executor> sub_exec;
     std::shared_ptr<const gko::Executor> sub_exec2;
     int rank;

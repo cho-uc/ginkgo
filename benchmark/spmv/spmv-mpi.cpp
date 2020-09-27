@@ -58,6 +58,7 @@ using etype = double;
 
 DEFINE_uint32(nrhs, 1, "The number of right hand sides");
 
+DEFINE_bool(distributed_rhs, false, "If true, uses a distributed rhs");
 
 // This function supposes that management of `FLAGS_overwrite` is done before
 // calling it
@@ -153,8 +154,7 @@ int main(int argc, char *argv[])
                                     "\nThe number of right hand sides is " +
                                     std::to_string(FLAGS_nrhs) + "\n";
     print_general_information(extra_information);
-    std::string exec_string = FLAGS_executor;
-    auto exec_substr = exec_string.substr(0, 3);
+
     gko::mpi::init_finalize mpi_init{argc, argv, 1};
     auto exec = executor_factory.at(FLAGS_executor)();
     auto mpi_exec = gko::as<const gko::MpiExecutor>(exec.get());
@@ -202,12 +202,22 @@ int main(int argc, char *argv[])
             std::clog << "Running test case: " << test_case << std::endl;
             std::ifstream mtx_fd(test_case["filename"].GetString());
             auto data = gko::read_raw<etype>(mtx_fd);
+            auto row_d = distributed::row_distribution.at("equal")(exec, data);
 
             auto nrhs = FLAGS_nrhs;
-            auto b = create_matrix<etype>(exec, gko::dim<2>{data.size[1], nrhs},
-                                          engine);
-            auto x = create_matrix<etype>(exec, gko::dim<2>{data.size[0], nrhs},
-                                          engine);
+            auto b = vec<etype>::create(exec);
+            auto x = vec<etype>::create(exec);
+            if (FLAGS_distributed_rhs) {
+                b = create_matrix<etype>(exec, gko::dim<2>{data.size[1], nrhs},
+                                         row_d, engine);
+                x = create_matrix<etype>(exec, gko::dim<2>{data.size[0], nrhs},
+                                         row_d, engine);
+            } else {
+                b = create_matrix<etype>(exec, gko::dim<2>{data.size[1], nrhs},
+                                         engine);
+                x = create_matrix<etype>(exec, gko::dim<2>{data.size[0], nrhs},
+                                         engine);
+            }
             std::string best_format_and_dist("none");
             auto best_performance = 0.0;
             if (!test_case.HasMember("optimal")) {
@@ -221,14 +231,18 @@ int main(int argc, char *argv[])
             if (FLAGS_detailed) {
                 auto row_dist =
                     distributed::row_distribution.at("equal")(exec, data);
-                // GKO_ASSERT_CONDITION(
-                //     distributed::verify_dist(exec, host_mpi_exec, row_dist,
-                //                              data.size[0]) == true);
+                if (FLAGS_debug) {
+                    GKO_ASSERT_CONDITION(
+                        distributed::verify_dist(exec, host_mpi_exec, row_dist,
+                                                 data.size[0]) == true);
+                }
                 auto system_matrix = share(formats::matrix_factory_dist.at(
                     "coo")(exec, data, row_dist));
                 std::clog << "Matrix is of size " << data.size
                           << " Distributed matrix size "
-                          << system_matrix->get_size() << std::endl;
+                          << system_matrix->get_size()
+                          << " Distributed rhs size " << b->get_size()
+                          << std::endl;
                 answer->copy_from(lend(x));
                 exec->synchronize();
                 system_matrix->apply(lend(b), lend(answer));
@@ -242,8 +256,10 @@ int main(int argc, char *argv[])
                 for (const auto &row_dist_type : row_dists_vec) {
                     auto row_dist = distributed::row_distribution.at(
                         row_dist_type)(exec, data);
-                    // GKO_ASSERT_CONDITION(distributed::verify_dist(
-                    //     exec, host_mpi_exec, row_dist, data.size[0]));
+                    if (FLAGS_debug) {
+                        GKO_ASSERT_CONDITION(distributed::verify_dist(
+                            exec, host_mpi_exec, row_dist, data.size[0]));
+                    }
                     exec->synchronize();
                     apply_spmv(format_name.c_str(), row_dist_type.c_str(), exec,
                                data, row_dist, lend(b), lend(x), lend(answer),

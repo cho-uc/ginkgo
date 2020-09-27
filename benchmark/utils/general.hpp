@@ -86,6 +86,8 @@ DEFINE_string(double_buffer, "",
               " buffering of backup files, in case of a"
               " crash when overwriting the backup");
 
+DEFINE_bool(debug, false, "If set, performs some expensive debug checks");
+
 DEFINE_bool(detailed, true,
             "If set, performs several runs to obtain more detailed results");
 
@@ -413,7 +415,7 @@ const std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
                  gko::MpiExecutor::create(gko::ReferenceExecutor::create());
              return gko::MpiExecutor::create(
                  gko::CudaExecutor::create(mpi_exec_ref->get_my_rank(),
-                                           gko::OmpExecutor::create(), false));
+                                           gko::OmpExecutor::create(), true));
          }},
         {"hip",
          [] {

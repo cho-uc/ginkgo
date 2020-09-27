@@ -147,13 +147,15 @@ run_conversion_benchmarks() {
     [ "${DRY_RUN}" == "true" ] && return
     cp "$1" "$1.imd" # make sure we're not loosing the original input
     EXEC_CHECK=$(echo "${EXECUTOR}" | cut -c1-3)
-    echo " EXEC Check:   ${EXEC_CHECK}"
     if [[ "${EXEC_CHECK}" == "mpi" ]]; then
-        echo "######## Running with mpirun"
-        mpirun -n ${NUM_PROCS} ./conversions/conversions --backup="$1.bkp" --double_buffer="$1.bkp2" \
+        echo "Running with mpi"
+        exec_mpi="./conversions/conversions --backup="$1.bkp" \
+                --double_buffer="$1.bkp2" \
                --executor="${EXECUTOR}" --formats="${FORMATS}" \
                --device_id="${DEVICE_ID}" \
-               <"$1.imd" 2>&1 >"$1"
+               <"$1.imd" 2>&1 >"$1" "
+        echo ${exec_mpi}
+        exec ${exec_mpi}
     else
         ./conversions/conversions --backup="$1.bkp" --double_buffer="$1.bkp2" \
                                   --executor="${EXECUTOR}" --formats="${FORMATS}" \
@@ -173,14 +175,14 @@ run_spmv_benchmarks() {
     [ "${DRY_RUN}" == "true" ] && return
     cp "$1" "$1.imd" # make sure we're not loosing the original input
     EXEC_CHECK=$(echo "${EXECUTOR}" | cut -c1-3)
-    echo " EXEC Check:   ${EXEC_CHECK}"
     if [[ "${EXEC_CHECK}" == "mpi" ]]; then
-        echo "Running with mpirun"
-        exec_mpi="${MPI_EXEC} ./spmv/spmv-mpi --backup="$1.bkp" --double_buffer="$1.bkp2" \
-               --executor="${EXECUTOR}" --formats="${FORMATS}" --row_dists="${ROW_DISTS}" \
+        echo "Running with mpi"
+        exec_mpi="${MPI_EXEC} ./spmv/spmv-mpi --backup="$1.bkp" \
+               --double_buffer="$1.bkp2" \
+               --executor="${EXECUTOR}" --formats="${FORMATS}" \
+               --row_dists="${ROW_DISTS}" \
                --device_id="${DEVICE_ID}" \
-               --filename="$1.imd"
-                2>&1 >"$1" "
+               --filename="$1.imd" 2>&1 >"$1" "
         echo ${exec_mpi}
         exec ${exec_mpi}
     else
@@ -202,20 +204,24 @@ run_solver_benchmarks() {
     [ "${DRY_RUN}" == "true" ] && return
     cp "$1" "$1.imd" # make sure we're not loosing the original input
     EXEC_CHECK=$(echo "${EXECUTOR}" | cut -c1-3)
-    echo " EXEC Check:   ${EXEC_CHECK}"
     if [[ "${EXEC_CHECK}" == "mpi" ]]; then
-        echo "######## Running with mpirun"
-        mpirun -report-bindings -n ${NUM_PROCS} ./solver/solver --backup="$1.bkp" --double_buffer="$1.bkp2" \
+        echo "Running with mpi"
+        exec_mpi="${MPI_EXEC} ./solver/solver-mpi --backup="$1.bkp" \
+               --double_buffer="$1.bkp2" \
                --executor="${EXECUTOR}" --solvers="${SOLVERS}" \
                --preconditioners="${PRECONDS}" \
-               --max_iters=${SOLVERS_MAX_ITERATIONS} --rel_res_goal=${SOLVERS_PRECISION} \
+               --max_iters=${SOLVERS_MAX_ITERATIONS} \
+               --rel_res_goal=${SOLVERS_PRECISION} \
                ${DETAILED_STR} --device_id="${DEVICE_ID}" \
-               <"$1.imd" 2>&1 >"$1"
+               <"$1.imd" 2>&1 >"$1" "
+        echo ${exec_mpi}
+        exec ${exec_mpi}
     else
         ./solver/solver --backup="$1.bkp" --double_buffer="$1.bkp2" \
                         --executor="${EXECUTOR}" --solvers="${SOLVERS}" \
                         --preconditioners="${PRECONDS}" \
-                        --max_iters=${SOLVERS_MAX_ITERATIONS} --rel_res_goal=${SOLVERS_PRECISION} \
+                        --max_iters=${SOLVERS_MAX_ITERATIONS} \
+                        --rel_res_goal=${SOLVERS_PRECISION} \
                         ${DETAILED_STR} --device_id="${DEVICE_ID}" \
                         <"$1.imd" 2>&1 >"$1"
     fi
