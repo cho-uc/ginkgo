@@ -113,7 +113,9 @@ TEST_F(MpiExecutor, CanSendAndRecvValues)
         send_array = gko::Array<ValueType>{
             sub_exec, gko::Array<ValueType>::view(sub_exec, 4, data)};
         for (auto rank = 0; rank < num_ranks; ++rank) {
-            mpi->send<ValueType>(send_array.get_data(), 4, rank, 40 + rank);
+            if (rank != my_rank) {
+                mpi->send<ValueType>(send_array.get_data(), 4, rank, 40 + rank);
+            }
         }
     } else {
         recv_array = gko::Array<ValueType>{sub_exec, 4};
@@ -140,18 +142,23 @@ TEST_F(MpiExecutor, CanNonBlockingSendAndNonBlockingRecvValues)
     auto send_array = gko::Array<ValueType>{sub_exec};
     auto recv_array = gko::Array<ValueType>{sub_exec};
     int *data;
+    auto req = mpi->create_requests_array(num_ranks);
     if (my_rank == 0) {
         data = new ValueType[4]{1, 2, 3, 4};
         send_array = gko::Array<ValueType>{
             sub_exec, gko::Array<ValueType>::view(sub_exec, 4, data)};
         for (auto rank = 0; rank < num_ranks; ++rank) {
-            mpi->send<ValueType>(send_array.get_data(), 4, rank, 40 + rank,
-                                 true);
+            if (rank != my_rank) {
+                mpi->send<ValueType>(send_array.get_data(), 4, rank, 40 + rank,
+                                     req.get());
+            }
         }
     } else {
         recv_array = gko::Array<ValueType>{sub_exec, 4};
-        mpi->recv<ValueType>(recv_array.get_data(), 4, 0, 40 + my_rank, true);
+        mpi->recv<ValueType>(recv_array.get_data(), 4, 0, 40 + my_rank,
+                             req.get());
     }
+    mpi->wait(req.get());
     if (my_rank != 0) {
         ASSERT_EQ(recv_array.get_data()[0], 1);
         ASSERT_EQ(recv_array.get_data()[1], 2);

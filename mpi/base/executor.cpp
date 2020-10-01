@@ -120,6 +120,16 @@ void MpiExecutor::set_communicator(MPI_Comm comm)
 }
 
 
+void MpiExecutor::wait(MPI_Request *req, MPI_Status *status)
+{
+    if (status) {
+        bindings::mpi::wait(req, status);
+    } else {
+        bindings::mpi::wait(req, MPI_STATUS_IGNORE);
+    }
+}
+
+
 std::shared_ptr<MpiExecutor> MpiExecutor::create(
     std::shared_ptr<Executor> sub_executor)
 {
@@ -169,25 +179,26 @@ MPI_Comm MpiExecutor::create_communicator(MPI_Comm &comm_in, int color, int key)
 }
 
 
-// MPI_Op MpiExecutor::create_operation(
-//     std::function<void(void *, void *, int *, MPI_Datatype *)> func, void
-//     *arg1, void *arg2, int *len, MPI_Datatype *type)
-// {
-//     MPI_Op operation;
-//     bindings::mpi::create_op(
-//         func.target<void(void *, void *, int *, MPI_Datatype *)>(), true,
-//         &operation);
-//     return operation;
-// }
+MPI_Op MpiExecutor::create_operation(
+    const std::function<void(void *, void *, int *, MPI_Datatype *)> func,
+    void *arg1, void *arg2, int *len, MPI_Datatype *type)
+{
+    MPI_Op operation;
+    bindings::mpi::create_op(
+        // func(arg1, arg2, len, type), true,
+        func.target<void(void *, void *, int *, MPI_Datatype *)>(), true,
+        &operation);
+    return operation;
+}
 
 
 template <typename SendType>
 void MpiExecutor::send(const SendType *send_buffer, const int send_count,
                        const int destination_rank, const int send_tag,
-                       bool non_blocking, MPI_Request *req) const
+                       MPI_Request *req) const
 {
     auto send_type = helpers::mpi::get_mpi_type(send_buffer[0]);
-    if (!non_blocking) {
+    if (!req) {
         bindings::mpi::send(send_buffer, send_count, send_type,
                             destination_rank, send_tag, this->mpi_comm_);
     } else {
@@ -200,10 +211,10 @@ void MpiExecutor::send(const SendType *send_buffer, const int send_count,
 template <typename RecvType>
 void MpiExecutor::recv(RecvType *recv_buffer, const int recv_count,
                        const int source_rank, const int recv_tag,
-                       bool non_blocking, MPI_Request *req) const
+                       MPI_Request *req) const
 {
     auto recv_type = helpers::mpi::get_mpi_type(recv_buffer[0]);
-    if (!non_blocking) {
+    if (!req) {
         bindings::mpi::recv(recv_buffer, recv_count, recv_type, source_rank,
                             recv_tag, this->mpi_comm_,
                             (this->mpi_status_.get() ? this->mpi_status_.get()
@@ -228,16 +239,16 @@ void MpiExecutor::broadcast(BroadcastType *buffer, int count,
 template <typename ReduceType>
 void MpiExecutor::reduce(const ReduceType *send_buffer, ReduceType *recv_buffer,
                          int count, mpi::op_type op_enum, int root_rank,
-                         bool non_blocking) const
+                         MPI_Request *req) const
 {
     auto operation = helpers::mpi::get_operation<ReduceType>(op_enum);
     auto reduce_type = helpers::mpi::get_mpi_type(send_buffer[0]);
-    if (!non_blocking) {
+    if (!req) {
         bindings::mpi::reduce(send_buffer, recv_buffer, count, reduce_type,
                               operation, root_rank, this->mpi_comm_);
     } else {
         bindings::mpi::i_reduce(send_buffer, recv_buffer, count, reduce_type,
-                                operation, root_rank, this->mpi_comm_, nullptr);
+                                operation, root_rank, this->mpi_comm_, req);
     }
 }
 
@@ -245,17 +256,17 @@ void MpiExecutor::reduce(const ReduceType *send_buffer, ReduceType *recv_buffer,
 template <typename ReduceType>
 void MpiExecutor::all_reduce(const ReduceType *send_buffer,
                              ReduceType *recv_buffer, int count,
-                             mpi::op_type op_enum, bool non_blocking) const
+                             mpi::op_type op_enum, MPI_Request *req) const
 {
     auto operation = helpers::mpi::get_operation<ReduceType>(op_enum);
     auto reduce_type = helpers::mpi::get_mpi_type(send_buffer[0]);
-    if (!non_blocking) {
+    if (!req) {
         bindings::mpi::all_reduce(send_buffer, recv_buffer, count, reduce_type,
                                   operation, this->mpi_comm_);
     } else {
         bindings::mpi::i_all_reduce(send_buffer, recv_buffer, count,
                                     reduce_type, operation, this->mpi_comm_,
-                                    nullptr);
+                                    req);
     }
 }
 
@@ -313,7 +324,7 @@ void MpiExecutor::scatter(const SendType *send_buffer, const int *send_counts,
 #define GKO_DECLARE_SEND(SendType)                                            \
     void MpiExecutor::send(const SendType *send_buffer, const int send_count, \
                            const int destination_rank, const int send_tag,    \
-                           bool non_blocking, MPI_Request *req) const
+                           MPI_Request *req) const
 
 GKO_INSTANTIATE_FOR_EACH_SEPARATE_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SEND);
 
@@ -321,7 +332,7 @@ GKO_INSTANTIATE_FOR_EACH_SEPARATE_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SEND);
 #define GKO_DECLARE_RECV(RecvType)                                      \
     void MpiExecutor::recv(RecvType *recv_buffer, const int recv_count, \
                            const int source_rank, const int recv_tag,   \
-                           bool non_blocking, MPI_Request *req) const
+                           MPI_Request *req) const
 
 GKO_INSTANTIATE_FOR_EACH_SEPARATE_VALUE_AND_INDEX_TYPE(GKO_DECLARE_RECV);
 
@@ -336,7 +347,7 @@ GKO_INSTANTIATE_FOR_EACH_SEPARATE_VALUE_AND_INDEX_TYPE(GKO_DECLARE_BCAST);
 #define GKO_DECLARE_REDUCE(ReduceType)                                     \
     void MpiExecutor::reduce(                                              \
         const ReduceType *send_buffer, ReduceType *recv_buffer, int count, \
-        mpi::op_type operation, int root_rank, bool non_blocking) const
+        mpi::op_type operation, int root_rank, MPI_Request *req) const
 
 GKO_INSTANTIATE_FOR_EACH_SEPARATE_VALUE_AND_INDEX_TYPE(GKO_DECLARE_REDUCE);
 
@@ -344,7 +355,7 @@ GKO_INSTANTIATE_FOR_EACH_SEPARATE_VALUE_AND_INDEX_TYPE(GKO_DECLARE_REDUCE);
 #define GKO_DECLARE_ALLREDUCE(ReduceType)                                  \
     void MpiExecutor::all_reduce(                                          \
         const ReduceType *send_buffer, ReduceType *recv_buffer, int count, \
-        mpi::op_type operation, bool non_blocking) const
+        mpi::op_type operation, MPI_Request *req) const
 
 GKO_INSTANTIATE_FOR_EACH_SEPARATE_VALUE_AND_INDEX_TYPE(GKO_DECLARE_ALLREDUCE);
 

@@ -76,10 +76,10 @@ inline void free_comm(MPI_Comm &comm)
 }
 
 
-// inline void create_op(MPI_User_function *func, int commute, MPI_Op *op)
-// {
-//     GKO_ASSERT_NO_MPI_ERRORS(MPI_Op_create(func, commute, op));
-// }
+inline void create_op(const MPI_User_function *func, int commute, MPI_Op *op)
+{
+    GKO_ASSERT_NO_MPI_ERRORS(MPI_Op_create(func, commute, op));
+}
 
 
 inline void wait(MPI_Request *request, MPI_Status *status)

@@ -1504,6 +1504,8 @@ public:
 
     request_manager<MPI_Request> create_requests_array(int size);
 
+    void wait(MPI_Request *req, MPI_Status *status = nullptr);
+
     /**
      * Get the Executor information for this executor
      *
@@ -1515,13 +1517,13 @@ public:
     template <typename SendType>
     void send(const SendType *send_buffer, const int send_count,
               const int destination_rank, const int send_tag,
-              bool non_blocking = false, MPI_Request *req = nullptr) const;
+              MPI_Request *req = nullptr) const;
 
     // MPI_Recv
     template <typename RecvType>
     void recv(RecvType *recv_buffer, const int recv_count,
               const int source_rank, const int recv_tag,
-              bool non_blocking = false, MPI_Request *req = nullptr) const;
+              MPI_Request *req = nullptr) const;
 
     // MPI_Gather
     template <typename SendType, typename RecvType>
@@ -1555,13 +1557,13 @@ public:
     template <typename ReduceType>
     void reduce(const ReduceType *send_buffer, ReduceType *recv_buffer,
                 int count, mpi::op_type op_enum, int root_rank,
-                bool non_blocking = false) const;
+                MPI_Request *req = nullptr) const;
 
     // MPI_Allreduce
     template <typename ReduceType>
     void all_reduce(const ReduceType *send_buffer, ReduceType *recv_buffer,
                     int count, mpi::op_type op_enum,
-                    bool non_blocking = false) const;
+                    MPI_Request *req = nullptr) const;
 
 protected:
     MpiExecutor() = delete;
