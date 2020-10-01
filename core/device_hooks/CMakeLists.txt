@@ -9,12 +9,12 @@ if(NOT GINKGO_BUILD_CUDA)
 endif()
 
 if (NOT GINKGO_BUILD_MPI)
-  add_library(ginkgo_mpi
-    $<TARGET_OBJECTS:ginkgo_mpi_device>
-    mpi_hooks.cpp)
-  ginkgo_compile_features(ginkgo_mpi)
-  ginkgo_default_includes(ginkgo_mpi)
-  ginkgo_install_library(ginkgo_mpi mpi)
+    add_library(ginkgo_mpi
+        $<TARGET_OBJECTS:ginkgo_mpi_device>
+        mpi_hooks.cpp)
+    ginkgo_compile_features(ginkgo_mpi)
+    ginkgo_default_includes(ginkgo_mpi)
+    ginkgo_install_library(ginkgo_mpi mpi)
 endif()
 
 if (NOT GINKGO_BUILD_OMP)

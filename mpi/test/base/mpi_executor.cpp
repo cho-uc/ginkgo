@@ -131,6 +131,39 @@ TEST_F(MpiExecutor, CanSendAndRecvValues)
 }
 
 
+TEST_F(MpiExecutor, CanNonBlockingSendAndNonBlockingRecvValues)
+{
+    using ValueType = int;
+    auto sub_exec = mpi->get_sub_executor();
+    auto my_rank = mpi->get_my_rank();
+    auto num_ranks = mpi->get_num_ranks();
+    auto send_array = gko::Array<ValueType>{sub_exec};
+    auto recv_array = gko::Array<ValueType>{sub_exec};
+    int *data;
+    if (my_rank == 0) {
+        data = new ValueType[4]{1, 2, 3, 4};
+        send_array = gko::Array<ValueType>{
+            sub_exec, gko::Array<ValueType>::view(sub_exec, 4, data)};
+        for (auto rank = 0; rank < num_ranks; ++rank) {
+            mpi->send<ValueType>(send_array.get_data(), 4, rank, 40 + rank,
+                                 true);
+        }
+    } else {
+        recv_array = gko::Array<ValueType>{sub_exec, 4};
+        mpi->recv<ValueType>(recv_array.get_data(), 4, 0, 40 + my_rank, true);
+    }
+    if (my_rank != 0) {
+        ASSERT_EQ(recv_array.get_data()[0], 1);
+        ASSERT_EQ(recv_array.get_data()[1], 2);
+        ASSERT_EQ(recv_array.get_data()[2], 3);
+        ASSERT_EQ(recv_array.get_data()[3], 4);
+    }
+    if (my_rank == 0) {
+        delete data;
+    }
+}
+
+
 TEST_F(MpiExecutor, CanBroadcastValues)
 {
     auto sub_exec = mpi->get_sub_executor();

@@ -105,13 +105,15 @@ MPI_Op MpiExecutor::create_operation(
 template <typename SendType>
 void MpiExecutor::send(const SendType *send_buffer, const int send_count,
                        const int destination_rank, const int send_tag,
-                       bool non_blocking) const GKO_NOT_COMPILED(mpi);
+                       bool non_blocking, MPI_Request *req) const
+    GKO_NOT_COMPILED(mpi);
 
 
 template <typename RecvType>
 void MpiExecutor::recv(RecvType *recv_buffer, const int recv_count,
                        const int source_rank, const int recv_tag,
-                       bool non_blocking) const GKO_NOT_COMPILED(mpi);
+                       bool non_blocking, MPI_Request *req) const
+    GKO_NOT_COMPILED(mpi);
 
 
 template <typename BroadcastType>
@@ -161,7 +163,7 @@ void MpiExecutor::scatter(const SendType *send_buffer, const int *send_counts,
 #define GKO_DECLARE_SEND(SendType)                                            \
     void MpiExecutor::send(const SendType *send_buffer, const int send_count, \
                            const int destination_rank, const int send_tag,    \
-                           bool non_blocking) const
+                           bool non_blocking, MPI_Request *req) const
 
 GKO_INSTANTIATE_FOR_EACH_SEPARATE_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SEND);
 
@@ -169,7 +171,7 @@ GKO_INSTANTIATE_FOR_EACH_SEPARATE_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SEND);
 #define GKO_DECLARE_RECV(RecvType)                                      \
     void MpiExecutor::recv(RecvType *recv_buffer, const int recv_count, \
                            const int source_rank, const int recv_tag,   \
-                           bool non_blocking) const
+                           bool non_blocking, MPI_Request *req) const
 
 GKO_INSTANTIATE_FOR_EACH_SEPARATE_VALUE_AND_INDEX_TYPE(GKO_DECLARE_RECV);
 

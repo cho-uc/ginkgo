@@ -7,6 +7,9 @@ function(ginkgo_default_includes name)
             $<BUILD_INTERFACE:${Ginkgo_SOURCE_DIR}>
             $<INSTALL_INTERFACE:include>
         )
+    if (GINKGO_BUILD_MPI)
+        target_include_directories(${name} SYSTEM PRIVATE ${MPI_INCLUDE_PATH})
+    endif()
 endfunction()
 
 function(ginkgo_compile_features name)

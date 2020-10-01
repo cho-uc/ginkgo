@@ -42,6 +42,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/config.hpp>
+
+#if GKO_HAVE_MPI
+#include <mpi.h>
+#endif
+
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/machine_config.hpp>
@@ -1510,13 +1515,13 @@ public:
     template <typename SendType>
     void send(const SendType *send_buffer, const int send_count,
               const int destination_rank, const int send_tag,
-              bool non_blocking = false) const;
+              bool non_blocking = false, MPI_Request *req = nullptr) const;
 
     // MPI_Recv
     template <typename RecvType>
     void recv(RecvType *recv_buffer, const int recv_count,
               const int source_rank, const int recv_tag,
-              bool non_blocking = false) const;
+              bool non_blocking = false, MPI_Request *req = nullptr) const;
 
     // MPI_Gather
     template <typename SendType, typename RecvType>
