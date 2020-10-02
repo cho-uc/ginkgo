@@ -185,7 +185,6 @@ MPI_Op MpiExecutor::create_operation(
 {
     MPI_Op operation;
     bindings::mpi::create_op(
-        // func(arg1, arg2, len, type), true,
         func.target<void(void *, void *, int *, MPI_Datatype *)>(), true,
         &operation);
     return operation;

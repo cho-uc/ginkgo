@@ -63,6 +63,7 @@ if (GINKGO_HAVE_HWLOC)
 endif()
 
 if (GINKGO_BUILD_MPI)
+    target_link_libraries(ginkgo PUBLIC "${MPI_C_LIBRARIES}" "${MPI_CXX_LIBRARIES}")
     target_include_directories(ginkgo SYSTEM PUBLIC ${MPI_INCLUDE_PATH})
 endif()
 
@@ -71,7 +72,7 @@ endif()
 add_library(Ginkgo::ginkgo ALIAS ginkgo)
 target_link_libraries(ginkgo
     PUBLIC ginkgo_omp ginkgo_cuda ginkgo_reference ginkgo_mpi ginkgo_hip)
-# The PAPI dependency needs to be exposed to the user.
+#The PAPI dependency needs to be exposed to the user.
 if (GINKGO_HAVE_PAPI_SDE)
   target_link_libraries(ginkgo PUBLIC PAPI::PAPI)
 endif()

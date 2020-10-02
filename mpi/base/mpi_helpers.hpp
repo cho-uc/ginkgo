@@ -151,12 +151,6 @@ MPI_Op get_operation(gko::mpi::op_type op)
 }
 
 
-// #define GKO_DECLARE_MPI_GET_OP(ValueType) MPI_Op
-// get_operation(gko::mpi::op_type)
-
-// GKO_INSTANTIATE_FOR_EACH_SEPARATE_VALUE_AND_INDEX_TYPE(GKO_DECLARE_MPI_GET_OP);
-
-
 }  // namespace mpi
 }  // namespace helpers
 }  // namespace gko
