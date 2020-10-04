@@ -65,8 +65,10 @@ protected:
         int argc = 0;
         mpi_exec = gko::MpiExecutor::create(gko::ReferenceExecutor::create());
         sub_exec = mpi_exec->get_sub_executor();
-        rank = mpi_exec->get_my_rank();
-        ASSERT_GT(mpi_exec->get_num_ranks(), 1);
+        auto comm = mpi_exec->get_communicator();
+        rank = mpi_exec->get_my_rank(comm);
+        auto num_ranks = mpi_exec->get_num_ranks(comm);
+        ASSERT_GT(num_ranks, 1);
     }
 
     void TearDown()

@@ -70,8 +70,9 @@ protected:
         exec = gko::ReferenceExecutor::create();
         mpi_exec = gko::MpiExecutor::create(gko::ReferenceExecutor::create());
         sub_exec = mpi_exec->get_sub_executor();
-        rank = mpi_exec->get_my_rank();
-        ASSERT_GT(mpi_exec->get_num_ranks(), 1);
+        auto comm = mpi_exec->get_communicator();
+        rank = mpi_exec->get_my_rank(comm);
+        ASSERT_GT(mpi_exec->get_num_ranks(comm), 1);
         mtx = gko::initialize<Mtx>(
             {{2, -1.0, 0.0}, {-1.0, 2, -1.0}, {0.0, -1.0, 2}}, sub_exec);
         fcg_factory =

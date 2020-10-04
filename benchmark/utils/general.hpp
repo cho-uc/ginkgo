@@ -267,11 +267,11 @@ using size_type = gko::size_type;
 
 namespace distributed {
 
-#define DIST_COMMON_FUNCS                                  \
-    GKO_ASSERT_MPI_EXEC(exec.get());                       \
-    auto mpi_exec = gko::as<gko::MpiExecutor>(exec.get()); \
-    auto num_ranks = mpi_exec->get_num_ranks();            \
-    auto my_rank = mpi_exec->get_my_rank()
+#define DIST_COMMON_FUNCS                                                   \
+    GKO_ASSERT_MPI_EXEC(exec.get());                                        \
+    auto mpi_exec = gko::as<gko::MpiExecutor>(exec.get());                  \
+    auto num_ranks = mpi_exec->get_num_ranks(mpi_exec->get_communicator()); \
+    auto my_rank = mpi_exec->get_my_rank(mpi_exec->get_communicator())
 
 
 void print_arr(const gko::Array<size_type> &arr)
@@ -305,8 +305,8 @@ bool verify_dist(std::shared_ptr<gko::Executor> exec,
 {
     GKO_ASSERT_MPI_EXEC(exec.get());
     auto mpi_exec = gko::as<gko::MpiExecutor>(exec.get());
-    auto num_ranks = mpi_exec->get_num_ranks();
-    auto my_rank = mpi_exec->get_my_rank();
+    auto num_ranks = mpi_exec->get_num_ranks(mpi_exec->get_communicator());
+    auto my_rank = mpi_exec->get_my_rank(mpi_exec->get_communicator());
     auto root_rank = mpi_exec->get_root_rank();
     int dup_flag = 1;
     int max_flag = 0;
@@ -413,9 +413,9 @@ const std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
          [] {
              auto mpi_exec_ref =
                  gko::MpiExecutor::create(gko::ReferenceExecutor::create());
-             return gko::MpiExecutor::create(
-                 gko::CudaExecutor::create(mpi_exec_ref->get_my_rank(),
-                                           gko::OmpExecutor::create(), true));
+             return gko::MpiExecutor::create(gko::CudaExecutor::create(
+                 mpi_exec_ref->get_my_rank(mpi_exec_ref->get_communicator()),
+                 gko::OmpExecutor::create(), true));
          }},
         {"hip",
          [] {
@@ -425,9 +425,9 @@ const std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
         {"mpi-hip", [] {
              auto mpi_exec_ref =
                  gko::MpiExecutor::create(gko::ReferenceExecutor::create());
-             return gko::MpiExecutor::create(
-                 gko::HipExecutor::create(mpi_exec_ref->get_my_rank(),
-                                          gko::OmpExecutor::create(), true));
+             return gko::MpiExecutor::create(gko::HipExecutor::create(
+                 mpi_exec_ref->get_my_rank(mpi_exec_ref->get_communicator()),
+                 gko::OmpExecutor::create(), true));
          }}};
 
 

@@ -70,12 +70,19 @@ protected:
 };
 
 
+TEST_F(MpiExecutor, KnowsItsCommunicator)
+{
+    auto comm_world = gko::mpi::communicator(MPI_COMM_WORLD);
+    EXPECT_EQ(comm_world.compare(mpi->get_communicator()), true);
+}
+
+
 TEST_F(MpiExecutor, KnowsItsSize)
 {
     int size;
     MPI_Comm_size(MPI_COMM_WORLD, &size);
 
-    EXPECT_EQ(mpi->get_num_ranks(), size);
+    EXPECT_EQ(mpi->get_num_ranks(MPI_COMM_WORLD), size);
 }
 
 
@@ -84,7 +91,7 @@ TEST_F(MpiExecutor, KnowsItsRanks)
     int rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-    EXPECT_EQ(rank, mpi->get_my_rank());
+    EXPECT_EQ(rank, mpi->get_my_rank(MPI_COMM_WORLD));
 }
 
 
@@ -103,8 +110,9 @@ TEST_F(MpiExecutor, CanSendAndRecvValues)
 {
     using ValueType = int;
     auto sub_exec = mpi->get_sub_executor();
-    auto my_rank = mpi->get_my_rank();
-    auto num_ranks = mpi->get_num_ranks();
+    auto comm = mpi->get_communicator();
+    auto my_rank = mpi->get_my_rank(comm);
+    auto num_ranks = mpi->get_num_ranks(comm);
     auto send_array = gko::Array<ValueType>{sub_exec};
     auto recv_array = gko::Array<ValueType>{sub_exec};
     int *data;
@@ -137,8 +145,9 @@ TEST_F(MpiExecutor, CanNonBlockingSendAndNonBlockingRecvValues)
 {
     using ValueType = int;
     auto sub_exec = mpi->get_sub_executor();
-    auto my_rank = mpi->get_my_rank();
-    auto num_ranks = mpi->get_num_ranks();
+    auto comm = mpi->get_communicator();
+    auto my_rank = mpi->get_my_rank(comm);
+    auto num_ranks = mpi->get_num_ranks(comm);
     auto send_array = gko::Array<ValueType>{sub_exec};
     auto recv_array = gko::Array<ValueType>{sub_exec};
     int *data;
@@ -174,7 +183,9 @@ TEST_F(MpiExecutor, CanNonBlockingSendAndNonBlockingRecvValues)
 TEST_F(MpiExecutor, CanBroadcastValues)
 {
     auto sub_exec = mpi->get_sub_executor();
-    auto my_rank = mpi->get_my_rank();
+    auto comm = mpi->get_communicator();
+    auto my_rank = mpi->get_my_rank(comm);
+    auto num_ranks = mpi->get_num_ranks(comm);
     double *data;
     auto array = gko::Array<double>{sub_exec, 8};
     if (my_rank == 0) {
@@ -204,8 +215,9 @@ TEST_F(MpiExecutor, CanReduceValues)
 {
     using ValueType = double;
     auto sub_exec = mpi->get_sub_executor();
-    auto my_rank = mpi->get_my_rank();
-    auto num_ranks = mpi->get_num_ranks();
+    auto comm = mpi->get_communicator();
+    auto my_rank = mpi->get_my_rank(comm);
+    auto num_ranks = mpi->get_num_ranks(comm);
     ValueType data, sum, max, min;
     if (my_rank == 0) {
         data = 3;
@@ -230,8 +242,9 @@ TEST_F(MpiExecutor, CanReduceValues)
 TEST_F(MpiExecutor, CanAllReduceValues)
 {
     auto sub_exec = mpi->get_sub_executor();
-    auto my_rank = mpi->get_my_rank();
-    auto num_ranks = mpi->get_num_ranks();
+    auto comm = mpi->get_communicator();
+    auto my_rank = mpi->get_my_rank(comm);
+    auto num_ranks = mpi->get_num_ranks(comm);
     int data, sum;
     if (my_rank == 0) {
         data = 3;
@@ -250,7 +263,9 @@ TEST_F(MpiExecutor, CanAllReduceValues)
 TEST_F(MpiExecutor, CanScatterValues)
 {
     auto sub_exec = mpi->get_sub_executor();
-    auto my_rank = mpi->get_my_rank();
+    auto comm = mpi->get_communicator();
+    auto my_rank = mpi->get_my_rank(comm);
+    auto num_ranks = mpi->get_num_ranks(comm);
     double *data;
     auto scatter_from_array = gko::Array<double>{sub_exec->get_master()};
     if (my_rank == 0) {
@@ -286,8 +301,9 @@ TEST_F(MpiExecutor, CanScatterValues)
 TEST_F(MpiExecutor, CanGatherValues)
 {
     auto sub_exec = mpi->get_sub_executor();
-    auto my_rank = mpi->get_my_rank();
-    auto num_ranks = mpi->get_num_ranks();
+    auto comm = mpi->get_communicator();
+    auto my_rank = mpi->get_my_rank(comm);
+    auto num_ranks = mpi->get_num_ranks(comm);
     int data;
     if (my_rank == 0) {
         data = 3;
@@ -313,8 +329,9 @@ TEST_F(MpiExecutor, CanGatherValues)
 TEST_F(MpiExecutor, CanScatterValuesWithDisplacements)
 {
     auto sub_exec = mpi->get_sub_executor();
-    auto my_rank = mpi->get_my_rank();
-    auto num_ranks = mpi->get_num_ranks();
+    auto comm = mpi->get_communicator();
+    auto my_rank = mpi->get_my_rank(comm);
+    auto num_ranks = mpi->get_num_ranks(comm);
     double *data;
     auto scatter_from_array = gko::Array<double>{sub_exec};
     auto scatter_into_array = gko::Array<double>{sub_exec};
@@ -368,8 +385,9 @@ TEST_F(MpiExecutor, CanScatterValuesWithDisplacements)
 TEST_F(MpiExecutor, CanGatherValuesWithDisplacements)
 {
     auto sub_exec = mpi->get_sub_executor();
-    auto my_rank = mpi->get_my_rank();
-    auto num_ranks = mpi->get_num_ranks();
+    auto comm = mpi->get_communicator();
+    auto my_rank = mpi->get_my_rank(comm);
+    auto num_ranks = mpi->get_num_ranks(comm);
     double *data;
     auto gather_from_array = gko::Array<double>{sub_exec};
     auto gather_into_array = gko::Array<double>{sub_exec};

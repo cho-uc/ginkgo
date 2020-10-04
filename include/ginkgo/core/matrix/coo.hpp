@@ -404,8 +404,9 @@ protected:
         using itype = index_type;
         auto mpi_exec = as<gko::MpiExecutor>(exec.get());
         auto sub_exec = exec->get_sub_executor();
-        auto num_ranks = mpi_exec->get_num_ranks();
-        auto my_rank = mpi_exec->get_my_rank();
+        auto comm = mpi_exec->get_communicator();
+        auto num_ranks = mpi_exec->get_num_ranks(comm);
+        auto my_rank = mpi_exec->get_my_rank(comm);
         auto root_rank = mpi_exec->get_root_rank();
         itype num_rows = row_set.get_num_elems();
         // Can also be the last element of the row_idx array as we sort the

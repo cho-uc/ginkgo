@@ -106,8 +106,9 @@ Array<ValueType> Array<ValueType>::distribute(
     using itype = IndexType;
     auto mpi_exec = as<gko::MpiExecutor>(exec.get());
     auto sub_exec = exec->get_sub_executor();
-    auto num_ranks = mpi_exec->get_num_ranks();
-    auto my_rank = mpi_exec->get_my_rank();
+    auto comm = mpi_exec->get_communicator();
+    auto num_ranks = mpi_exec->get_num_ranks(comm);
+    auto my_rank = mpi_exec->get_my_rank(comm);
     auto root_rank = mpi_exec->get_root_rank();
 
     itype num_subsets = index_set.get_num_subsets();
@@ -271,8 +272,9 @@ Array<ValueType> Array<ValueType>::gather_on_root(
     using itype = IndexType;
     auto mpi_exec = as<gko::MpiExecutor>(exec.get());
     auto sub_exec = exec->get_sub_executor();
-    auto num_ranks = mpi_exec->get_num_ranks();
-    auto my_rank = mpi_exec->get_my_rank();
+    auto comm = mpi_exec->get_communicator();
+    auto num_ranks = mpi_exec->get_num_ranks(comm);
+    auto my_rank = mpi_exec->get_my_rank(comm);
     auto root_rank = mpi_exec->get_root_rank();
 
     itype num_subsets = index_set.get_num_subsets();
@@ -443,8 +445,9 @@ Array<ValueType> Array<ValueType>::gather_on_all(
     using itype = IndexType;
     auto mpi_exec = as<gko::MpiExecutor>(exec.get());
     auto sub_exec = exec->get_sub_executor();
-    auto num_ranks = mpi_exec->get_num_ranks();
-    auto my_rank = mpi_exec->get_my_rank();
+    auto comm = mpi_exec->get_communicator();
+    auto num_ranks = mpi_exec->get_num_ranks(comm);
+    auto my_rank = mpi_exec->get_my_rank(comm);
     auto root_rank = mpi_exec->get_root_rank();
 
     itype num_subsets = index_set.get_num_subsets();

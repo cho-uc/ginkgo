@@ -666,7 +666,7 @@ inline void read_impl(MatrixType *mtx, const MatrixData &data,
     auto exec = mtx->get_executor();
     GKO_ASSERT_MPI_EXEC(exec.get());
     auto mpi_exec = as<gko::MpiExecutor>(exec.get());
-    auto rank = mpi_exec->get_my_rank();
+    auto rank = mpi_exec->get_my_rank(mpi_exec->get_communicator());
     auto local_num_rows = dist.get_num_elems();
     auto row_idx_set = gko::IndexSet<size_type>{data.size[0]};
     row_idx_set.add_indices(dist.get_const_data(),
@@ -803,8 +803,8 @@ std::unique_ptr<Dense<ValueType>> Dense<ValueType>::gather_on_root(
     GKO_ASSERT_MPI_EXEC(exec.get());
     auto mpi_exec = gko::as<MpiExecutor>(exec.get());
     auto sub_exec = exec->get_sub_executor();
-    auto num_ranks = mpi_exec->get_num_ranks();
-    auto my_rank = mpi_exec->get_my_rank();
+    auto num_ranks = mpi_exec->get_num_ranks(mpi_exec->get_communicator());
+    auto my_rank = mpi_exec->get_my_rank(mpi_exec->get_communicator());
     auto root_rank = mpi_exec->get_root_rank();
 
     auto mat_size = this->get_size();
@@ -842,8 +842,8 @@ std::unique_ptr<Dense<ValueType>> Dense<ValueType>::gather_on_all(
     GKO_ASSERT_MPI_EXEC(exec.get());
     auto mpi_exec = gko::as<MpiExecutor>(exec.get());
     auto sub_exec = exec->get_sub_executor();
-    auto num_ranks = mpi_exec->get_num_ranks();
-    auto my_rank = mpi_exec->get_my_rank();
+    auto num_ranks = mpi_exec->get_num_ranks(mpi_exec->get_communicator());
+    auto my_rank = mpi_exec->get_my_rank(mpi_exec->get_communicator());
     auto root_rank = mpi_exec->get_root_rank();
 
     auto mat_size = this->get_size();

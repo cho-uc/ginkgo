@@ -65,13 +65,15 @@ protected:
         exec = gko::ReferenceExecutor::create();
         host = gko::ReferenceExecutor::create();
         mpi_exec2 = gko::MpiExecutor::create(host);
-        rank = mpi_exec2->get_my_rank();
+        auto comm2 = mpi_exec2->get_communicator();
+        rank = mpi_exec2->get_my_rank(comm2);
         cuda_exec = gko::CudaExecutor::create(rank, host);
         mpi_exec = gko::MpiExecutor::create(cuda_exec);
+        auto comm = mpi_exec->get_communicator();
         sub_exec = mpi_exec->get_sub_executor();
         auto ndev = gko::as<gko::CudaExecutor>(mpi_exec->get_sub_executor())
                         ->get_num_devices();
-        rank = mpi_exec->get_my_rank();
+        rank = mpi_exec->get_my_rank(comm);
         GKO_ASSERT(ndev > 0);
         auto dev_id =
             gko::as<gko::CudaExecutor>(sub_exec.get())->get_device_id();
@@ -80,7 +82,7 @@ protected:
                 gko::as<gko::CudaExecutor>(sub_exec.get())->get_mem_space())
 
                 ->get_device_id();
-        ASSERT_GT(mpi_exec->get_num_ranks(), 1);
+        ASSERT_GT(mpi_exec->get_num_ranks(comm), 1);
     }
 
     void TearDown()

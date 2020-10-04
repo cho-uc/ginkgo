@@ -417,7 +417,8 @@ void Csr<ValueType, IndexType>::read(const mat_data &data,
     auto exec = this->get_executor();
     GKO_ASSERT_MPI_EXEC(exec.get());
     auto mpi_exec = as<gko::MpiExecutor>(exec.get());
-    auto rank = mpi_exec->get_my_rank();
+    auto comm = mpi_exec->get_communicator();
+    auto rank = mpi_exec->get_my_rank(comm);
     auto local_num_rows = dist.get_num_elems();
     auto row_idx_set = gko::IndexSet<size_type>{data.size[0]};
     row_idx_set.add_indices(dist.get_const_data(),

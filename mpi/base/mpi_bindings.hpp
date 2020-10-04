@@ -55,7 +55,7 @@ namespace bindings {
 namespace mpi {
 
 
-inline MPI_Comm create_comm(MPI_Comm &comm_in, int color, int key)
+inline MPI_Comm create_comm(const MPI_Comm &comm_in, int color, int key)
 {
     MPI_Comm comm_out;
     GKO_ASSERT_NO_MPI_ERRORS(MPI_Comm_split(comm_in, color, key, &comm_out));
@@ -63,10 +63,19 @@ inline MPI_Comm create_comm(MPI_Comm &comm_in, int color, int key)
 }
 
 
-inline MPI_Comm *get_comm_world()
+inline MPI_Comm duplicate_comm(const MPI_Comm &comm)
 {
-    MPI_Comm comm = MPI_COMM_WORLD;
-    return std::move(&comm);
+    MPI_Comm dup;
+    GKO_ASSERT_NO_MPI_ERRORS(MPI_Comm_dup(comm, &dup));
+    return dup;
+}
+
+
+inline bool compare_comm(const MPI_Comm &comm1, const MPI_Comm &comm2)
+{
+    int flag;
+    GKO_ASSERT_NO_MPI_ERRORS(MPI_Comm_compare(comm1, comm2, &flag));
+    return flag;
 }
 
 
@@ -184,6 +193,7 @@ inline void gather(const void *send_buffer, const int send_count,
                                         root, comm));
 }
 
+
 inline void gatherv(const void *send_buffer, const int send_count,
                     MPI_Datatype &send_type, void *recv_buffer,
                     const int *recv_counts, const int *displacements,
@@ -195,6 +205,7 @@ inline void gatherv(const void *send_buffer, const int send_count,
                     recv_counts, displacements, recv_type, root_rank, comm));
 }
 
+
 inline void scatter(const void *send_buffer, const int send_count,
                     MPI_Datatype &send_type, void *recv_buffer,
                     const int recv_count, MPI_Datatype &recv_type, int root,
@@ -204,6 +215,7 @@ inline void scatter(const void *send_buffer, const int send_count,
                                          recv_buffer, recv_count, recv_type,
                                          root, comm));
 }
+
 
 inline void scatterv(const void *send_buffer, const int *send_counts,
                      const int *displacements, MPI_Datatype &send_type,

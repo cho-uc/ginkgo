@@ -154,7 +154,7 @@ void LowerTrs<ValueType, IndexType>::distributed_apply_impl(const LinOp *b,
     const auto exec = this->get_executor();
     auto mpi_exec = as<gko::MpiExecutor>(exec.get());
     auto sub_exec = mpi_exec->get_sub_executor();
-    auto my_rank = mpi_exec->get_my_rank();
+    auto my_rank = mpi_exec->get_my_rank(mpi_exec->get_communicator());
 
     auto dense_b = as<const Vector>(b);
     auto dense_x = as<Vector>(x);

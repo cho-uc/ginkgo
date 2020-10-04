@@ -677,7 +677,9 @@ protected:
         auto max_index_size = row_set.get_largest_element_in_set() + 1;
         auto values_set = gko::IndexSet<size_type>{max_index_size * stride};
         auto mpi_exec = gko::as<MpiExecutor>(exec.get());
-        auto my_rank = mpi_exec->get_my_rank();
+        auto comm = mpi_exec->get_communicator();
+        auto num_ranks = mpi_exec->get_num_ranks(comm);
+        auto my_rank = mpi_exec->get_my_rank(comm);
         auto elem = row_set.begin();
         for (auto i = 0; i < row_set.get_num_elems(); ++i) {
             values_set.add_dense_row(*elem, stride);
@@ -857,8 +859,9 @@ std::unique_ptr<Matrix> initialize_and_distribute(
     using dense = matrix::Dense<typename Matrix::value_type>;
     GKO_ASSERT_MPI_EXEC(exec.get());
     auto mpi_exec = as<gko::MpiExecutor>(exec.get());
-    auto num_ranks = mpi_exec->get_num_ranks();
-    auto my_rank = mpi_exec->get_my_rank();
+    auto comm = mpi_exec->get_communicator();
+    auto num_ranks = mpi_exec->get_num_ranks(comm);
+    auto my_rank = mpi_exec->get_my_rank(comm);
     auto num_rows = row_set.get_num_elems();
     auto tmp = dense::create(exec->get_master(), dim<2>{vals.size(), 1},
                              row_set, stride);
@@ -987,8 +990,9 @@ std::unique_ptr<Matrix> initialize_and_distribute(
     using dense = matrix::Dense<typename Matrix::value_type>;
     GKO_ASSERT_MPI_EXEC(exec.get());
     auto mpi_exec = as<gko::MpiExecutor>(exec.get());
-    auto num_ranks = mpi_exec->get_num_ranks();
-    auto my_rank = mpi_exec->get_my_rank();
+    auto comm = mpi_exec->get_communicator();
+    auto num_ranks = mpi_exec->get_num_ranks(comm);
+    auto my_rank = mpi_exec->get_my_rank(comm);
     size_type num_rows = row_set.get_num_elems();
     size_type global_num_rows = vals.size();
     size_type num_cols = global_num_rows > 0 ? begin(vals)->size() : 1;

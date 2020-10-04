@@ -73,7 +73,7 @@ void apply_spmv(const char *format_name, const char *row_dist_type,
     try {
         auto mpi_exec = gko::as<gko::MpiExecutor>(exec.get());
         auto sub_exec = exec->get_sub_executor();
-        auto rank = mpi_exec->get_my_rank();
+        auto rank = mpi_exec->get_my_rank(mpi_exec->get_communicator());
         auto &spmv_case = test_case["spmv"];
         auto &format_case = spmv_case[format_name];
         add_or_set_member(spmv_case[format_name], row_dist_type,
@@ -159,8 +159,8 @@ int main(int argc, char *argv[])
     auto exec = executor_factory.at(FLAGS_executor)();
     auto mpi_exec = gko::as<const gko::MpiExecutor>(exec.get());
     auto host_mpi_exec = gko::MpiExecutor::create(exec->get_master());
-    auto rank = mpi_exec->get_my_rank();
-    auto num_ranks = mpi_exec->get_num_ranks();
+    auto rank = mpi_exec->get_my_rank(mpi_exec->get_communicator());
+    auto num_ranks = mpi_exec->get_num_ranks(mpi_exec->get_communicator());
 
     auto engine = get_engine();
     auto formats = split(FLAGS_formats, ',');

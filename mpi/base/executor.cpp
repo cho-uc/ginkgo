@@ -89,6 +89,27 @@ mpi::init_finalize::~init_finalize() noexcept(false)
 }
 
 
+mpi::communicator::communicator(const MPI_Comm &comm)
+{
+    this->comm_ = bindings::mpi::duplicate_comm(comm);
+}
+
+
+mpi::communicator::communicator(const MPI_Comm &comm_in, int color, int key)
+{
+    this->comm_ = bindings::mpi::create_comm(comm_in, color, key);
+}
+
+
+mpi::communicator::~communicator() { bindings::mpi::free_comm(this->comm_); }
+
+
+bool mpi::communicator::compare(const MPI_Comm &comm) const
+{
+    return bindings::mpi::compare_comm(this->comm_, comm);
+}
+
+
 MpiExecutor::request_manager<MPI_Request> MpiExecutor::create_requests_array(
     int size)
 {
@@ -97,7 +118,7 @@ MpiExecutor::request_manager<MPI_Request> MpiExecutor::create_requests_array(
 }
 
 
-void MpiExecutor::synchronize_communicator(MPI_Comm comm) const
+void MpiExecutor::synchronize_communicator(const MPI_Comm &comm) const
 {
     GKO_ASSERT_NO_MPI_ERRORS(MPI_Barrier(comm));
 }
@@ -110,13 +131,9 @@ void MpiExecutor::synchronize() const
 }
 
 
-void MpiExecutor::set_communicator(MPI_Comm comm)
+void MpiExecutor::set_communicator(const MPI_Comm &comm)
 {
-    if (comm) {
-        this->mpi_comm_ = comm;
-    } else {
-        this->mpi_comm_ = MPI_COMM_WORLD;
-    }
+    comm_ = mpi::communicator(comm);
 }
 
 
@@ -138,6 +155,14 @@ std::shared_ptr<MpiExecutor> MpiExecutor::create(
 }
 
 
+std::shared_ptr<MpiExecutor> MpiExecutor::create(
+    std::shared_ptr<Executor> sub_executor, const MPI_Comm &comm)
+{
+    return std::shared_ptr<MpiExecutor>(new MpiExecutor(sub_executor, comm),
+                                        [](MpiExecutor *exec) { delete exec; });
+}
+
+
 double MpiExecutor::get_walltime() const
 {
     double wtime = 0.0;
@@ -146,36 +171,31 @@ double MpiExecutor::get_walltime() const
 }
 
 
-int MpiExecutor::get_my_rank() const
+int MpiExecutor::get_my_rank(const MPI_Comm &comm) const
 {
     auto my_rank = 0;
-    GKO_ASSERT_NO_MPI_ERRORS(MPI_Comm_rank(MPI_COMM_WORLD, &my_rank));
+    GKO_ASSERT_NO_MPI_ERRORS(MPI_Comm_rank(comm, &my_rank));
     return my_rank;
 }
 
 
-int MpiExecutor::get_local_rank(MPI_Comm comm) const
+int MpiExecutor::get_local_rank(const MPI_Comm &comm) const
 {
     MPI_Comm local_comm;
     int rank;
     GKO_ASSERT_NO_MPI_ERRORS(MPI_Comm_split_type(comm, MPI_COMM_TYPE_SHARED, 0,
                                                  MPI_INFO_NULL, &local_comm));
     GKO_ASSERT_NO_MPI_ERRORS(MPI_Comm_rank(local_comm, &rank));
+    MPI_Comm_free(&local_comm);
     return rank;
 }
 
 
-int MpiExecutor::get_num_ranks() const
+int MpiExecutor::get_num_ranks(const MPI_Comm &comm) const
 {
     int size = 1;
-    GKO_ASSERT_NO_MPI_ERRORS(MPI_Comm_size(MPI_COMM_WORLD, &size));
+    GKO_ASSERT_NO_MPI_ERRORS(MPI_Comm_size(this->get_communicator(), &size));
     return size;
-}
-
-
-MPI_Comm MpiExecutor::create_communicator(MPI_Comm &comm_in, int color, int key)
-{
-    return bindings::mpi::create_comm(comm_in, color, key);
 }
 
 
@@ -199,10 +219,12 @@ void MpiExecutor::send(const SendType *send_buffer, const int send_count,
     auto send_type = helpers::mpi::get_mpi_type(send_buffer[0]);
     if (!req) {
         bindings::mpi::send(send_buffer, send_count, send_type,
-                            destination_rank, send_tag, this->mpi_comm_);
+                            destination_rank, send_tag,
+                            this->get_communicator());
     } else {
         bindings::mpi::i_send(send_buffer, send_count, send_type,
-                              destination_rank, send_tag, this->mpi_comm_, req);
+                              destination_rank, send_tag,
+                              this->get_communicator(), req);
     }
 }
 
@@ -215,12 +237,12 @@ void MpiExecutor::recv(RecvType *recv_buffer, const int recv_count,
     auto recv_type = helpers::mpi::get_mpi_type(recv_buffer[0]);
     if (!req) {
         bindings::mpi::recv(recv_buffer, recv_count, recv_type, source_rank,
-                            recv_tag, this->mpi_comm_,
+                            recv_tag, this->get_communicator(),
                             (this->mpi_status_.get() ? this->mpi_status_.get()
                                                      : MPI_STATUS_IGNORE));
     } else {
         bindings::mpi::i_recv(recv_buffer, recv_count, recv_type, source_rank,
-                              recv_tag, this->mpi_comm_, req);
+                              recv_tag, this->get_communicator(), req);
     }
 }
 
@@ -231,7 +253,7 @@ void MpiExecutor::broadcast(BroadcastType *buffer, int count,
 {
     auto bcast_type = helpers::mpi::get_mpi_type(buffer[0]);
     bindings::mpi::broadcast(buffer, count, bcast_type, root_rank,
-                             this->mpi_comm_);
+                             this->get_communicator());
 }
 
 
@@ -244,10 +266,11 @@ void MpiExecutor::reduce(const ReduceType *send_buffer, ReduceType *recv_buffer,
     auto reduce_type = helpers::mpi::get_mpi_type(send_buffer[0]);
     if (!req) {
         bindings::mpi::reduce(send_buffer, recv_buffer, count, reduce_type,
-                              operation, root_rank, this->mpi_comm_);
+                              operation, root_rank, this->get_communicator());
     } else {
         bindings::mpi::i_reduce(send_buffer, recv_buffer, count, reduce_type,
-                                operation, root_rank, this->mpi_comm_, req);
+                                operation, root_rank, this->get_communicator(),
+                                req);
     }
 }
 
@@ -261,11 +284,11 @@ void MpiExecutor::all_reduce(const ReduceType *send_buffer,
     auto reduce_type = helpers::mpi::get_mpi_type(send_buffer[0]);
     if (!req) {
         bindings::mpi::all_reduce(send_buffer, recv_buffer, count, reduce_type,
-                                  operation, this->mpi_comm_);
+                                  operation, this->get_communicator());
     } else {
         bindings::mpi::i_all_reduce(send_buffer, recv_buffer, count,
-                                    reduce_type, operation, this->mpi_comm_,
-                                    req);
+                                    reduce_type, operation,
+                                    this->get_communicator(), req);
     }
 }
 
@@ -278,7 +301,8 @@ void MpiExecutor::gather(const SendType *send_buffer, const int send_count,
     auto send_type = helpers::mpi::get_mpi_type(send_buffer[0]);
     auto recv_type = helpers::mpi::get_mpi_type(recv_buffer[0]);
     bindings::mpi::gather(send_buffer, send_count, send_type, recv_buffer,
-                          recv_count, recv_type, root_rank, this->mpi_comm_);
+                          recv_count, recv_type, root_rank,
+                          this->get_communicator());
 }
 
 
@@ -291,7 +315,7 @@ void MpiExecutor::gather(const SendType *send_buffer, const int send_count,
     auto recv_type = helpers::mpi::get_mpi_type(recv_buffer[0]);
     bindings::mpi::gatherv(send_buffer, send_count, send_type, recv_buffer,
                            recv_counts, displacements, recv_type, root_rank,
-                           this->mpi_comm_);
+                           this->get_communicator());
 }
 
 
@@ -303,7 +327,8 @@ void MpiExecutor::scatter(const SendType *send_buffer, const int send_count,
     auto send_type = helpers::mpi::get_mpi_type(send_buffer[0]);
     auto recv_type = helpers::mpi::get_mpi_type(recv_buffer[0]);
     bindings::mpi::scatter(send_buffer, send_count, send_type, recv_buffer,
-                           recv_count, recv_type, root_rank, this->mpi_comm_);
+                           recv_count, recv_type, root_rank,
+                           this->get_communicator());
 }
 
 
@@ -316,7 +341,7 @@ void MpiExecutor::scatter(const SendType *send_buffer, const int *send_counts,
     auto recv_type = helpers::mpi::get_mpi_type(recv_buffer[0]);
     bindings::mpi::scatterv(send_buffer, send_counts, displacements, send_type,
                             recv_buffer, recv_count, recv_type, root_rank,
-                            this->mpi_comm_);
+                            this->get_communicator());
 }
 
 

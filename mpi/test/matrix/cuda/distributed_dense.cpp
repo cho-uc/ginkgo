@@ -65,12 +65,15 @@ protected:
         exec = gko::ReferenceExecutor::create();
         host = gko::ReferenceExecutor::create();
         mpi_exec2 = gko::MpiExecutor::create(host);
-        rank = mpi_exec2->get_my_rank();
+        auto comm2 = mpi_exec2->get_communicator();
+        rank = mpi_exec2->get_my_rank(comm2);
         cuda_exec = gko::CudaExecutor::create(rank, host);
         mpi_exec = gko::MpiExecutor::create(cuda_exec);
         sub_exec = mpi_exec->get_sub_executor();
-        rank = mpi_exec->get_my_rank();
-        ASSERT_GT(mpi_exec->get_num_ranks(), 1);
+        sub_exec2 = mpi_exec2->get_sub_executor();
+        auto comm = mpi_exec->get_communicator();
+        rank = mpi_exec->get_my_rank(comm);
+        ASSERT_GT(mpi_exec->get_num_ranks(comm), 1);
         mtx1 = gko::initialize<Mtx>({I<T>({1.0, -1.0}), I<T>({-2.0, 2.0})},
                                     sub_exec);
         mtx2 =

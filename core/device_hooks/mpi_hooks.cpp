@@ -46,10 +46,10 @@ version version_info::get_mpi_version() noexcept
 }
 
 
-int MpiExecutor::get_num_ranks() const { return 0; }
+int MpiExecutor::get_num_ranks(const MPI_Comm &comm) const { return 0; }
 
 
-int MpiExecutor::get_my_rank() const GKO_NOT_COMPILED(mpi);
+int MpiExecutor::get_my_rank(const MPI_Comm &comm) const GKO_NOT_COMPILED(mpi);
 
 
 std::shared_ptr<MpiExecutor> MpiExecutor::create(
@@ -79,14 +79,24 @@ mpi::init_finalize::init_finalize(int &argc, char **&argv,
 mpi::init_finalize::~init_finalize() noexcept(false) GKO_NOT_COMPILED(mpi);
 
 
-void MpiExecutor::synchronize_communicator(MPI_Comm comm) const
+mpi::communicator::communicator(const MPI_Comm &comm) GKO_NOT_COMPILED(mpi);
+
+
+mpi::communicator::communicator(const MPI_Comm &comm_in, int color, int key)
+    GKO_NOT_COMPILED(mpi);
+
+
+mpi::communicator::~communicator() {}
+
+
+void MpiExecutor::synchronize_communicator(const MPI_Comm &comm) const
     GKO_NOT_COMPILED(mpi);
 
 
 void MpiExecutor::synchronize() const GKO_NOT_COMPILED(mpi);
 
 
-void MpiExecutor::set_communicator(MPI_Comm comm) GKO_NOT_COMPILED(mpi);
+void MpiExecutor::set_communicator(const MPI_Comm &comm) GKO_NOT_COMPILED(mpi);
 
 
 void MpiExecutor::wait(MPI_Request *req, MPI_Status *status)
@@ -95,10 +105,6 @@ void MpiExecutor::wait(MPI_Request *req, MPI_Status *status)
 
 MpiExecutor::request_manager<MPI_Request> MpiExecutor::create_requests_array(
     int size) GKO_NOT_COMPILED(mpi);
-
-
-MPI_Comm MpiExecutor::create_communicator(MPI_Comm &comm_in, int color, int key)
-    GKO_NOT_COMPILED(mpi);
 
 
 MPI_Op MpiExecutor::create_operation(

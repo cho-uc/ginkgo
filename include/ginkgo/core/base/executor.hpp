@@ -1427,6 +1427,34 @@ private:
     char **args_;
 };
 
+
+class communicator {
+public:
+    communicator(const MPI_Comm &comm);
+
+    communicator(const MPI_Comm &comm, int color, int key);
+
+    communicator() = delete;
+
+    communicator(communicator &other) = delete;
+
+    communicator &operator=(const communicator &other) = delete;
+
+    communicator(communicator &&other) = default;
+
+    communicator &operator=(communicator &&other) = default;
+
+    MPI_Comm get() const { return comm_; }
+
+    bool compare(const MPI_Comm &other) const;
+
+    ~communicator();
+
+private:
+    MPI_Comm comm_;
+};
+
+
 }  // namespace mpi
 
 /**
@@ -1456,6 +1484,12 @@ public:
     static std::shared_ptr<MpiExecutor> create(
         std::shared_ptr<Executor> sub_executor);
 
+    /**
+     * Creates a new MpiExecutor.
+     */
+    static std::shared_ptr<MpiExecutor> create(
+        std::shared_ptr<Executor> sub_executor, const MPI_Comm &comm);
+
     std::shared_ptr<Executor> get_master() noexcept override;
 
     std::shared_ptr<const Executor> get_master() const noexcept override;
@@ -1472,17 +1506,17 @@ public:
         this->template log<log::Logger::operation_completed>(this, &op);
     }
 
-    int get_num_ranks() const;
+    int get_num_ranks(const MPI_Comm &comm) const;
 
-    int get_my_rank() const;
+    int get_my_rank(const MPI_Comm &comm) const;
 
-    MPI_Comm get_communicator() const { return mpi_comm_; }
+    MPI_Comm get_communicator() const { return comm_.get(); }
 
     void set_root_rank(int rank) { root_rank_ = rank; }
 
     int get_root_rank() const { return root_rank_; }
 
-    int get_local_rank(MPI_Comm comm) const;
+    int get_local_rank(const MPI_Comm &comm) const;
 
     double get_walltime() const;
 
@@ -1492,11 +1526,9 @@ public:
 
     void synchronize() const override;
 
-    void synchronize_communicator(MPI_Comm comm) const;
+    void synchronize_communicator(const MPI_Comm &comm) const;
 
-    void set_communicator(MPI_Comm comm);
-
-    MPI_Comm create_communicator(MPI_Comm &comm, int color, int key);
+    void set_communicator(const MPI_Comm &comm);
 
     MPI_Op create_operation(
         std::function<void(void *, void *, int *, MPI_Datatype *)> func,
@@ -1568,27 +1600,30 @@ public:
 protected:
     MpiExecutor() = delete;
 
-    MpiExecutor(std::shared_ptr<Executor> sub_executor)
-        : num_ranks_(1), sub_executor_(sub_executor)
+    MpiExecutor(std::shared_ptr<Executor> sub_executor, const MPI_Comm &comm)
+        : num_ranks_(1), sub_executor_(sub_executor), comm_(comm)
     {
         GKO_ASSERT(mpi::init_finalize::is_initialized() &&
                    !(mpi::init_finalize::is_finalized()));
-        this->num_ranks_ = this->get_num_ranks();
+        this->num_ranks_ = this->get_num_ranks(this->get_communicator());
         this->root_rank_ = 0;
-        // Set it to MPI_COMM_WORLD by default
-        this->set_communicator(MPI_COMM_WORLD);
+    }
+
+    MpiExecutor(std::shared_ptr<Executor> sub_executor)
+        : num_ranks_(1), sub_executor_(sub_executor), comm_(MPI_COMM_WORLD)
+    {
+        GKO_ASSERT(mpi::init_finalize::is_initialized() &&
+                   !(mpi::init_finalize::is_finalized()));
+        this->num_ranks_ = this->get_num_ranks(this->get_communicator());
+        this->root_rank_ = 0;
     }
 
 private:
     int num_ranks_;
     int root_rank_;
     std::shared_ptr<Executor> sub_executor_;
-
-    MPI_Comm mpi_comm_;
-    template <typename T>
-    using status_manager = std::unique_ptr<T, std::function<void(T *)>>;
-    status_manager<MPI_Status> mpi_status_;
-
+    mpi::communicator comm_;
+    std::unique_ptr<MPI_Status> mpi_status_;
     std::unique_ptr<mpi_exec_info> exec_info_;
 };
 

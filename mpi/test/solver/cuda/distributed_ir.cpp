@@ -74,8 +74,9 @@ protected:
         mpi_exec2 = gko::MpiExecutor::create(host);
         sub_exec = mpi_exec->get_sub_executor();
         sub_exec2 = mpi_exec2->get_sub_executor();
-        rank = mpi_exec->get_my_rank();
-        ASSERT_GT(mpi_exec->get_num_ranks(), 1);
+        auto comm = mpi_exec->get_communicator();
+        rank = mpi_exec->get_my_rank(comm);
+        ASSERT_GT(mpi_exec->get_num_ranks(comm), 1);
         mtx = gko::initialize<Mtx>(
             {{2, -1.0, 0.0}, {-1.0, 2, -1.0}, {0.0, -1.0, 2}}, sub_exec);
         ir_factory =

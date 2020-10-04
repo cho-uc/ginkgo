@@ -91,7 +91,8 @@ DEFINE_bool(overhead, false,
 
 
 // input validation
-[[noreturn]] void print_config_error_and_exit() {
+[[noreturn]] void print_config_error_and_exit()
+{
     std::cerr << "Input has to be a JSON array of matrix configurations:\n"
               << "  [\n"
               << "    { \"filename\": \"my_file.mtx\",  \"optimal\": { "
@@ -495,8 +496,8 @@ int main(int argc, char *argv[])
     auto exec = get_executor();
     auto mpi_exec = gko::as<const gko::MpiExecutor>(exec.get());
     auto host_mpi_exec = gko::MpiExecutor::create(exec->get_master());
-    auto rank = mpi_exec->get_my_rank();
-    auto num_ranks = mpi_exec->get_num_ranks();
+    auto rank = mpi_exec->get_my_rank(mpi_exec->get_communicator());
+    auto num_ranks = mpi_exec->get_num_ranks(mpi_exec->get_communicator());
 
     auto solvers = split(FLAGS_solvers, ',');
     auto preconds = split(FLAGS_preconditioners, ',');

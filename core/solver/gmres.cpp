@@ -319,7 +319,7 @@ void Gmres<ValueType>::distributed_apply_impl(const LinOp *b, LinOp *x) const
     auto exec = this->get_executor();
     auto mpi_exec = as<gko::MpiExecutor>(exec.get());
     auto sub_exec = mpi_exec->get_sub_executor();
-    auto my_rank = mpi_exec->get_my_rank();
+    auto my_rank = mpi_exec->get_my_rank(mpi_exec->get_communicator());
 
     auto one_op = initialize<Vector>({one<ValueType>()}, sub_exec);
     auto neg_one_op = initialize<Vector>({-one<ValueType>()}, sub_exec);
