@@ -1,0 +1,7 @@
+set(target_name "mfem_error")
+add_executable(${target_name} ${target_name}.cpp)
+target_link_libraries(${target_name} Ginkgo::ginkgo)
+target_include_directories(${target_name} PRIVATE ${PROJECT_SOURCE_DIR})
+configure_file(data/A_o2_beam.mtx data/A_o2_beam.mtx COPYONLY)
+configure_file(data/b_o2_beam.mtx data/b_o2_beam.mtx COPYONLY)
+configure_file(data/x0.mtx data/x0.mtx COPYONLY)

@@ -44,6 +44,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/solver/cg_kernels.hpp"
 
 
+#include <iostream>
+
+
 namespace gko {
 namespace solver {
 
@@ -156,6 +159,8 @@ void Cg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         // r = r - tmp * q
         swap(prev_rho, rho);
     }
+
+    std::cout << "CG iterations: " << iter << '\n';
 }
 
 

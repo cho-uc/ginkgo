@@ -25,7 +25,8 @@ set(EXAMPLES_LIST
     papi-logging
     performance-debugging
     preconditioner-export
-    simple-solver-logging)
+    simple-solver-logging
+    mfem_error)
 
 if(GINKGO_BUILD_EXTLIB_EXAMPLE)
     list(APPEND EXAMPLES_LIST external-lib-interfacing)
