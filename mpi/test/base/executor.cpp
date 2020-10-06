@@ -70,6 +70,17 @@ protected:
 };
 
 
+TEST_F(MpiExecutor, KnowsItsSubExecutors)
+{
+    auto sub_exec = mpi->get_sub_executor();
+    auto omp = gko::OmpExecutor::create();
+    auto ref = gko::ReferenceExecutor::create();
+
+    EXPECT_NE(typeid(*(omp.get())).name(), typeid(*(sub_exec.get())).name());
+    EXPECT_EQ(typeid(*(ref.get())).name(), typeid(*(sub_exec.get())).name());
+}
+
+
 TEST_F(MpiExecutor, KnowsItsCommunicator)
 {
     auto comm_world = gko::mpi::communicator(MPI_COMM_WORLD);
@@ -95,14 +106,21 @@ TEST_F(MpiExecutor, KnowsItsRanks)
 }
 
 
-TEST_F(MpiExecutor, KnowsItsSubExecutors)
+TEST_F(MpiExecutor, CanSetADefaultWindow)
 {
-    auto sub_exec = mpi->get_sub_executor();
-    auto omp = gko::OmpExecutor::create();
-    auto ref = gko::ReferenceExecutor::create();
+    gko::mpi::window<int> win;
+    ASSERT_EQ(win.get(), nullptr);
+}
 
-    EXPECT_NE(typeid(*(omp.get())).name(), typeid(*(sub_exec.get())).name());
-    EXPECT_EQ(typeid(*(ref.get())).name(), typeid(*(sub_exec.get())).name());
+
+TEST_F(MpiExecutor, CanCreateWindow)
+{
+    using ValueType = int;
+    ValueType *data;
+    data = new ValueType[4]{1, 2, 3, 4};
+    gko::mpi::window<ValueType> win(data, 4 * sizeof(ValueType));
+    ASSERT_NE(win.get(), nullptr);
+    delete data;
 }
 
 
@@ -177,6 +195,238 @@ TEST_F(MpiExecutor, CanNonBlockingSendAndNonBlockingRecvValues)
     if (my_rank == 0) {
         delete data;
     }
+}
+
+
+TEST_F(MpiExecutor, CanPutValuesWithLockAll)
+{
+    using ValueType = int;
+    using Window = gko::mpi::window<ValueType>;
+    auto sub_exec = mpi->get_sub_executor();
+    auto comm = mpi->get_communicator();
+    auto my_rank = mpi->get_my_rank(comm);
+    auto num_ranks = mpi->get_num_ranks(comm);
+    auto send_array = gko::Array<ValueType>{sub_exec};
+    auto recv_array = gko::Array<ValueType>{sub_exec};
+    int *data;
+    if (my_rank == 0) {
+        data = new ValueType[4]{1, 2, 3, 4};
+        send_array = gko::Array<ValueType>{
+            sub_exec, gko::Array<ValueType>::view(sub_exec, 4, data)};
+    } else {
+        recv_array = gko::Array<ValueType>{sub_exec, 4};
+    }
+    auto win = Window(recv_array.get_data(), 4 * sizeof(ValueType));
+    win.lock_all();
+    if (my_rank == 0) {
+        for (auto rank = 0; rank < num_ranks; ++rank) {
+            if (rank != my_rank) {
+                mpi->put<ValueType>(send_array.get_const_data(), 4, rank, 0, 4,
+                                    win.get());
+                win.flush(rank);
+            }
+        }
+    }
+    win.unlock_all();
+    mpi->synchronize();
+    if (my_rank != 0) {
+        ASSERT_EQ(recv_array.get_data()[0], 1);
+        ASSERT_EQ(recv_array.get_data()[1], 2);
+        ASSERT_EQ(recv_array.get_data()[2], 3);
+        ASSERT_EQ(recv_array.get_data()[3], 4);
+    }
+    if (my_rank == 0) {
+        delete data;
+    }
+}
+
+
+TEST_F(MpiExecutor, CanPutValuesWithExclusiveLock)
+{
+    using ValueType = int;
+    using Window = gko::mpi::window<ValueType>;
+    auto sub_exec = mpi->get_sub_executor();
+    auto comm = mpi->get_communicator();
+    auto my_rank = mpi->get_my_rank(comm);
+    auto num_ranks = mpi->get_num_ranks(comm);
+    auto send_array = gko::Array<ValueType>{sub_exec};
+    auto recv_array = gko::Array<ValueType>{sub_exec};
+    int *data;
+    if (my_rank == 0) {
+        data = new ValueType[4]{1, 2, 3, 4};
+    } else {
+        data = new ValueType[4]{0, 0, 0, 0};
+    }
+    auto win = Window(data, 4 * sizeof(ValueType), sizeof(ValueType),
+                      MPI_INFO_NULL, comm, Window::win_type::create);
+    if (my_rank == 0) {
+        for (auto rank = 0; rank < num_ranks; ++rank) {
+            if (rank != my_rank) {
+                win.lock(rank, 0, Window::lock_type::exclusive);
+                mpi->put<ValueType>(data, 4, rank, 0, 4, win.get());
+                win.flush(rank);
+                win.unlock(rank);
+            }
+        }
+    }
+    mpi->synchronize();
+    ASSERT_EQ(data[0], 1);
+    ASSERT_EQ(data[1], 2);
+    ASSERT_EQ(data[2], 3);
+    ASSERT_EQ(data[3], 4);
+    delete data;
+}
+
+
+TEST_F(MpiExecutor, CanPutValuesWithFence)
+{
+    using ValueType = int;
+    using Window = gko::mpi::window<ValueType>;
+    auto sub_exec = mpi->get_sub_executor();
+    auto comm = mpi->get_communicator();
+    auto my_rank = mpi->get_my_rank(comm);
+    auto num_ranks = mpi->get_num_ranks(comm);
+    auto send_array = gko::Array<ValueType>{sub_exec};
+    auto recv_array = gko::Array<ValueType>{sub_exec};
+    int *data;
+    if (my_rank == 0) {
+        data = new ValueType[4]{1, 2, 3, 4};
+        send_array = gko::Array<ValueType>{
+            sub_exec, gko::Array<ValueType>::view(sub_exec, 4, data)};
+    } else {
+        recv_array = gko::Array<ValueType>{sub_exec, 4};
+    }
+    auto win = Window(recv_array.get_data(), 4 * sizeof(ValueType));
+    win.fence();
+    if (my_rank == 0) {
+        for (auto rank = 0; rank < num_ranks; ++rank) {
+            if (rank != my_rank) {
+                mpi->put<ValueType>(send_array.get_const_data(), 4, rank, 0, 4,
+                                    win.get());
+            }
+        }
+    }
+    win.fence();
+    mpi->synchronize();
+    if (my_rank != 0) {
+        ASSERT_EQ(recv_array.get_data()[0], 1);
+        ASSERT_EQ(recv_array.get_data()[1], 2);
+        ASSERT_EQ(recv_array.get_data()[2], 3);
+        ASSERT_EQ(recv_array.get_data()[3], 4);
+    }
+    if (my_rank == 0) {
+        delete data;
+    }
+}
+
+
+TEST_F(MpiExecutor, CanGetValuesWithLockAll)
+{
+    using ValueType = int;
+    using Window = gko::mpi::window<ValueType>;
+    auto sub_exec = mpi->get_sub_executor();
+    auto comm = mpi->get_communicator();
+    auto my_rank = mpi->get_my_rank(comm);
+    auto num_ranks = mpi->get_num_ranks(comm);
+    auto send_array = gko::Array<ValueType>{sub_exec};
+    auto recv_array = gko::Array<ValueType>{sub_exec};
+    int *data;
+    if (my_rank == 0) {
+        data = new ValueType[4]{1, 2, 3, 4};
+    } else {
+        data = new ValueType[4]{0, 0, 0, 0};
+    }
+    auto win = Window(data, 4 * sizeof(ValueType), sizeof(ValueType),
+                      MPI_INFO_NULL, comm, Window::win_type::create);
+    if (my_rank != 0) {
+        win.lock_all();
+        for (auto rank = 0; rank < num_ranks; ++rank) {
+            if (rank != my_rank) {
+                mpi->get<ValueType>(data, 4, 0, 0, 4, win.get());
+                win.flush(0);
+            }
+        }
+        win.unlock_all();
+    }
+    mpi->synchronize();
+    ASSERT_EQ(data[0], 1);
+    ASSERT_EQ(data[1], 2);
+    ASSERT_EQ(data[2], 3);
+    ASSERT_EQ(data[3], 4);
+    delete data;
+}
+
+
+TEST_F(MpiExecutor, CanGetValuesWithExclusiveLock)
+{
+    using ValueType = int;
+    using Window = gko::mpi::window<ValueType>;
+    auto sub_exec = mpi->get_sub_executor();
+    auto comm = mpi->get_communicator();
+    auto my_rank = mpi->get_my_rank(comm);
+    auto num_ranks = mpi->get_num_ranks(comm);
+    auto send_array = gko::Array<ValueType>{sub_exec};
+    auto recv_array = gko::Array<ValueType>{sub_exec};
+    int *data;
+    if (my_rank == 0) {
+        data = new ValueType[4]{1, 2, 3, 4};
+    } else {
+        data = new ValueType[4]{0, 0, 0, 0};
+    }
+    auto win = Window(data, 4 * sizeof(ValueType), sizeof(ValueType),
+                      MPI_INFO_NULL, comm, Window::win_type::create);
+    if (my_rank != 0) {
+        for (auto rank = 0; rank < num_ranks; ++rank) {
+            if (rank != my_rank) {
+                win.lock(0, 0, Window::lock_type::exclusive);
+                mpi->get<ValueType>(data, 4, 0, 0, 4, win.get());
+                win.flush(0);
+                win.unlock(0);
+            }
+        }
+    }
+    mpi->synchronize();
+    ASSERT_EQ(data[0], 1);
+    ASSERT_EQ(data[1], 2);
+    ASSERT_EQ(data[2], 3);
+    ASSERT_EQ(data[3], 4);
+    delete data;
+}
+
+
+TEST_F(MpiExecutor, CanGetValuesWithFence)
+{
+    using ValueType = int;
+    using Window = gko::mpi::window<ValueType>;
+    auto sub_exec = mpi->get_sub_executor();
+    auto comm = mpi->get_communicator();
+    auto my_rank = mpi->get_my_rank(comm);
+    auto num_ranks = mpi->get_num_ranks(comm);
+    auto send_array = gko::Array<ValueType>{sub_exec};
+    auto recv_array = gko::Array<ValueType>{sub_exec};
+    int *data;
+    if (my_rank == 0) {
+        data = new ValueType[4]{1, 2, 3, 4};
+    } else {
+        data = new ValueType[4]{0, 0, 0, 0};
+    }
+    auto win = Window(data, 4 * sizeof(ValueType), sizeof(ValueType),
+                      MPI_INFO_NULL, comm, Window::win_type::create);
+    win.fence();
+    if (my_rank != 0) {
+        for (auto rank = 0; rank < num_ranks; ++rank) {
+            if (rank != my_rank) {
+                mpi->get<ValueType>(data, 4, 0, 0, 4, win.get());
+            }
+        }
+    }
+    win.fence();
+    mpi->synchronize();
+    ASSERT_EQ(data[0], 1);
+    ASSERT_EQ(data[1], 2);
+    ASSERT_EQ(data[2], 3);
+    ASSERT_EQ(data[3], 4);
+    delete data;
 }
 
 

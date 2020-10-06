@@ -110,6 +110,107 @@ bool mpi::communicator::compare(const MPI_Comm &comm) const
 }
 
 
+template <typename ValueType>
+mpi::window<ValueType>::window(ValueType *base, unsigned int size,
+                               const int disp_unit, MPI_Info info,
+                               const MPI_Comm &comm, win_type create_type)
+{
+    MPI_Win window;
+    if (create_type == win_type::create) {
+        bindings::mpi::create_window(base, size, disp_unit, info, comm,
+                                     &window);
+    } else if (create_type == win_type::dynamic_create) {
+        bindings::mpi::create_dynamic_window(info, comm, &window);
+    } else if (create_type == win_type::allocate) {
+        bindings::mpi::allocate_window(size, disp_unit, info, comm, base,
+                                       &window);
+    } else {
+        GKO_NOT_IMPLEMENTED;
+    }
+    this->window_ = window;
+}
+
+
+template <typename ValueType>
+void mpi::window<ValueType>::fence(int assert)
+{
+    bindings::mpi::fence_window(assert, &this->window_);
+}
+
+
+template <typename ValueType>
+void mpi::window<ValueType>::lock(int rank, int assert, lock_type lock_t)
+{
+    if (lock_t == lock_type::shared) {
+        bindings::mpi::lock_window(MPI_LOCK_SHARED, rank, assert,
+                                   &this->window_);
+    } else if (lock_t == lock_type::exclusive) {
+        bindings::mpi::lock_window(MPI_LOCK_EXCLUSIVE, rank, assert,
+                                   &this->window_);
+    } else {
+        GKO_NOT_IMPLEMENTED;
+    }
+}
+
+
+template <typename ValueType>
+void mpi::window<ValueType>::unlock(int rank)
+{
+    bindings::mpi::unlock_window(rank, &this->window_);
+}
+
+
+template <typename ValueType>
+void mpi::window<ValueType>::lock_all(int assert)
+{
+    bindings::mpi::lock_all_windows(assert, &this->window_);
+}
+
+
+template <typename ValueType>
+void mpi::window<ValueType>::unlock_all()
+{
+    bindings::mpi::unlock_all_windows(&this->window_);
+}
+
+
+template <typename ValueType>
+void mpi::window<ValueType>::flush(int rank)
+{
+    bindings::mpi::flush_window(rank, &this->window_);
+}
+
+
+template <typename ValueType>
+void mpi::window<ValueType>::flush_local(int rank)
+{
+    bindings::mpi::flush_local_window(rank, &this->window_);
+}
+
+
+template <typename ValueType>
+void mpi::window<ValueType>::flush_all()
+{
+    bindings::mpi::flush_all_windows(&this->window_);
+}
+
+
+template <typename ValueType>
+void mpi::window<ValueType>::flush_all_local()
+{
+    bindings::mpi::flush_all_local_windows(&this->window_);
+}
+
+
+template <typename ValueType>
+mpi::window<ValueType>::~window()
+{
+    if (this->window_ != nullptr) {
+        bindings::mpi::free_window(&this->window_);
+    }
+}
+
+
 MpiExecutor::request_manager<MPI_Request> MpiExecutor::create_requests_array(
     int size)
 {
@@ -247,6 +348,42 @@ void MpiExecutor::recv(RecvType *recv_buffer, const int recv_count,
 }
 
 
+template <typename PutType>
+void MpiExecutor::put(const PutType *origin_buffer, const int origin_count,
+                      const int target_rank, const unsigned int target_disp,
+                      const int target_count, MPI_Win window,
+                      MPI_Request *req) const
+{
+    auto put_type = helpers::mpi::get_mpi_type(origin_buffer[0]);
+    if (!req) {
+        bindings::mpi::put(origin_buffer, origin_count, put_type, target_rank,
+                           target_disp, target_count, put_type, window);
+    } else {
+        bindings::mpi::req_put(origin_buffer, origin_count, put_type,
+                               target_rank, target_disp, target_count, put_type,
+                               window, req);
+    }
+}
+
+
+template <typename GetType>
+void MpiExecutor::get(GetType *origin_buffer, const int origin_count,
+                      const int target_rank, const unsigned int target_disp,
+                      const int target_count, MPI_Win window,
+                      MPI_Request *req) const
+{
+    auto get_type = helpers::mpi::get_mpi_type(origin_buffer[0]);
+    if (!req) {
+        bindings::mpi::get(origin_buffer, origin_count, get_type, target_rank,
+                           target_disp, target_count, get_type, window);
+    } else {
+        bindings::mpi::req_get(origin_buffer, origin_count, get_type,
+                               target_rank, target_disp, target_count, get_type,
+                               window, req);
+    }
+}
+
+
 template <typename BroadcastType>
 void MpiExecutor::broadcast(BroadcastType *buffer, int count,
                             int root_rank) const
@@ -345,6 +482,11 @@ void MpiExecutor::scatter(const SendType *send_buffer, const int *send_counts,
 }
 
 
+#define GKO_DECLARE_WINDOW(ValueType) class mpi::window<ValueType>
+
+GKO_INSTANTIATE_FOR_EACH_SEPARATE_VALUE_AND_INDEX_TYPE(GKO_DECLARE_WINDOW);
+
+
 #define GKO_DECLARE_SEND(SendType)                                            \
     void MpiExecutor::send(const SendType *send_buffer, const int send_count, \
                            const int destination_rank, const int send_tag,    \
@@ -359,6 +501,24 @@ GKO_INSTANTIATE_FOR_EACH_SEPARATE_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SEND);
                            MPI_Request *req) const
 
 GKO_INSTANTIATE_FOR_EACH_SEPARATE_VALUE_AND_INDEX_TYPE(GKO_DECLARE_RECV);
+
+
+#define GKO_DECLARE_PUT(PutType)                               \
+    void MpiExecutor::put(                                     \
+        const PutType *origin_buffer, const int origin_count,  \
+        const int target_rank, const unsigned int target_disp, \
+        const int target_count, MPI_Win window, MPI_Request *req) const
+
+GKO_INSTANTIATE_FOR_EACH_SEPARATE_VALUE_AND_INDEX_TYPE(GKO_DECLARE_PUT);
+
+
+#define GKO_DECLARE_GET(GetType)                                               \
+    void MpiExecutor::get(                                                     \
+        GetType *origin_buffer, const int origin_count, const int target_rank, \
+        const unsigned int target_disp, const int target_count,                \
+        MPI_Win window, MPI_Request *req) const
+
+GKO_INSTANTIATE_FOR_EACH_SEPARATE_VALUE_AND_INDEX_TYPE(GKO_DECLARE_GET);
 
 
 #define GKO_DECLARE_BCAST(BroadcastType)                          \

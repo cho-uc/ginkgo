@@ -85,6 +85,90 @@ inline void free_comm(MPI_Comm &comm)
 }
 
 
+inline void create_window(void *base, unsigned int size, const int disp_unit,
+                          MPI_Info &info, const MPI_Comm &comm, MPI_Win *win)
+{
+    GKO_ASSERT_NO_MPI_ERRORS(
+        MPI_Win_create(base, size, disp_unit, info, comm, win));
+}
+
+
+inline void create_dynamic_window(MPI_Info &info, const MPI_Comm &comm,
+                                  MPI_Win *win)
+{
+    GKO_ASSERT_NO_MPI_ERRORS(MPI_Win_create_dynamic(info, comm, win));
+}
+
+
+inline void allocate_window(unsigned int size, const int disp_unit,
+                            MPI_Info &info, const MPI_Comm &comm, void *base,
+                            MPI_Win *win)
+{
+    GKO_ASSERT_NO_MPI_ERRORS(
+        MPI_Win_allocate(size, disp_unit, info, comm, base, win));
+}
+
+
+inline void free_window(MPI_Win *win)
+{
+    GKO_ASSERT_NO_MPI_ERRORS(MPI_Win_free(win));
+}
+
+
+inline void fence_window(int assert, MPI_Win *win)
+{
+    GKO_ASSERT_NO_MPI_ERRORS(MPI_Win_fence(assert, *win));
+}
+
+
+inline void lock_window(int lock_t, int rank, int assert, MPI_Win *win)
+{
+    GKO_ASSERT_NO_MPI_ERRORS(MPI_Win_lock(lock_t, rank, assert, *win));
+}
+
+
+inline void unlock_window(int rank, MPI_Win *win)
+{
+    GKO_ASSERT_NO_MPI_ERRORS(MPI_Win_unlock(rank, *win));
+}
+
+
+inline void lock_all_windows(int assert, MPI_Win *win)
+{
+    GKO_ASSERT_NO_MPI_ERRORS(MPI_Win_lock_all(assert, *win));
+}
+
+
+inline void unlock_all_windows(MPI_Win *win)
+{
+    GKO_ASSERT_NO_MPI_ERRORS(MPI_Win_unlock_all(*win));
+}
+
+
+inline void flush_window(int rank, MPI_Win *win)
+{
+    GKO_ASSERT_NO_MPI_ERRORS(MPI_Win_flush(rank, *win));
+}
+
+
+inline void flush_local_window(int rank, MPI_Win *win)
+{
+    GKO_ASSERT_NO_MPI_ERRORS(MPI_Win_flush_local(rank, *win));
+}
+
+
+inline void flush_all_windows(MPI_Win *win)
+{
+    GKO_ASSERT_NO_MPI_ERRORS(MPI_Win_flush_all(*win));
+}
+
+
+inline void flush_all_local_windows(MPI_Win *win)
+{
+    GKO_ASSERT_NO_MPI_ERRORS(MPI_Win_flush_local_all(*win));
+}
+
+
 inline void create_op(const MPI_User_function *func, int commute, MPI_Op *op)
 {
     GKO_ASSERT_NO_MPI_ERRORS(MPI_Op_create(func, commute, op));
@@ -133,6 +217,52 @@ inline void i_recv(void *recv_buffer, const int recv_count,
 {
     GKO_ASSERT_NO_MPI_ERRORS(MPI_Irecv(recv_buffer, recv_count, recv_type,
                                        source_rank, recv_tag, comm, request));
+}
+
+
+inline void put(const void *origin_buffer, const int origin_count,
+                const MPI_Datatype &origin_type, const int target_rank,
+                const unsigned int target_disp, const int target_count,
+                const MPI_Datatype &target_type, MPI_Win window)
+{
+    GKO_ASSERT_NO_MPI_ERRORS(MPI_Put(origin_buffer, origin_count, origin_type,
+                                     target_rank, target_disp, target_count,
+                                     target_type, window));
+}
+
+
+inline void req_put(const void *origin_buffer, const int origin_count,
+                    const MPI_Datatype &origin_type, const int target_rank,
+                    const unsigned int target_disp, const int target_count,
+                    const MPI_Datatype &target_type, MPI_Win window,
+                    MPI_Request *request)
+{
+    GKO_ASSERT_NO_MPI_ERRORS(MPI_Rput(origin_buffer, origin_count, origin_type,
+                                      target_rank, target_disp, target_count,
+                                      target_type, window, request));
+}
+
+
+inline void get(void *origin_buffer, const int origin_count,
+                const MPI_Datatype &origin_type, const int target_rank,
+                const unsigned int target_disp, const int target_count,
+                const MPI_Datatype &target_type, MPI_Win &window)
+{
+    GKO_ASSERT_NO_MPI_ERRORS(MPI_Get(origin_buffer, origin_count, origin_type,
+                                     target_rank, target_disp, target_count,
+                                     target_type, window));
+}
+
+
+inline void req_get(void *origin_buffer, const int origin_count,
+                    const MPI_Datatype &origin_type, const int target_rank,
+                    const unsigned int target_disp, const int target_count,
+                    const MPI_Datatype &target_type, MPI_Win &window,
+                    MPI_Request *request)
+{
+    GKO_ASSERT_NO_MPI_ERRORS(MPI_Rget(origin_buffer, origin_count, origin_type,
+                                      target_rank, target_disp, target_count,
+                                      target_type, window, request));
 }
 
 

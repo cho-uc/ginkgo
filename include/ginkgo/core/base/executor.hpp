@@ -42,15 +42,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/config.hpp>
-
-#if GKO_HAVE_MPI
-#include <mpi.h>
-#endif
-
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/machine_config.hpp>
 #include <ginkgo/core/base/memory_space.hpp>
+#include <ginkgo/core/base/mpi_headers.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/log/logger.hpp>
 #include <ginkgo/core/synthesizer/containers.hpp>
@@ -66,34 +62,6 @@ struct hipsparseContext;
 
 struct machineInfoContext;
 
-
-#ifndef MPI_VERSION
-
-using MPI_Comm = int;
-using MPI_Status = int;
-using MPI_Request = int;
-using MPI_Datatype = int;
-using MPI_Op = int;
-
-#ifndef MPI_COMM_WORLD
-#define MPI_COMM_WORLD 0
-#endif
-#ifndef MPI_COMM_SELF
-#define MPI_COMM_SELF 0
-#endif
-#ifndef MPI_REQUEST_NULL
-#define MPI_REQUEST_NULL 0
-#endif
-#ifndef MPI_MIN
-#define MPI_MIN 0
-#endif
-#ifndef MPI_MAX
-#define MPI_MAX 0
-#endif
-#ifndef MPI_SUM
-#define MPI_SUM 0
-#endif
-#endif
 
 namespace gko {
 
@@ -1375,88 +1343,6 @@ using DefaultExecutor = HipExecutor;
 }  // namespace hip
 }  // namespace kernels
 
-
-namespace mpi {
-
-enum class op_type {
-    sum = 1,
-    min = 2,
-    max = 3,
-    product = 4,
-    custom = 5,
-    logical_and = 6,
-    bitwise_and = 7,
-    logical_or = 8,
-    bitwise_or = 9,
-    logical_xor = 10,
-    bitwise_xor = 11,
-    max_val_and_loc = 12,
-    min_val_and_loc = 13
-};
-
-
-/*
- * Class that allows an RAII of initialization and calls MPI_Finalize at the
- * end of its scope. Therefore, this must be called before an MpiExecutor is
- * created.
- */
-class init_finalize {
-public:
-    init_finalize(int &argc, char **&argv, const size_type num_threads);
-
-    init_finalize() = delete;
-
-    init_finalize(init_finalize &other) = delete;
-
-    init_finalize &operator=(const init_finalize &other) = delete;
-
-    init_finalize(init_finalize &&other) = delete;
-
-    init_finalize const &operator=(init_finalize &&other) = delete;
-
-    static bool is_finalized();
-
-    static bool is_initialized();
-
-    ~init_finalize() noexcept(false);
-
-private:
-    int num_args_;
-    int required_thread_support_;
-    int provided_thread_support_;
-    char **args_;
-};
-
-
-class communicator {
-public:
-    communicator(const MPI_Comm &comm);
-
-    communicator(const MPI_Comm &comm, int color, int key);
-
-    communicator() = delete;
-
-    communicator(communicator &other) = delete;
-
-    communicator &operator=(const communicator &other) = delete;
-
-    communicator(communicator &&other) = default;
-
-    communicator &operator=(communicator &&other) = default;
-
-    MPI_Comm get() const { return comm_; }
-
-    bool compare(const MPI_Comm &other) const;
-
-    ~communicator();
-
-private:
-    MPI_Comm comm_;
-};
-
-
-}  // namespace mpi
-
 /**
  * This is the Executor subclass which represents a distributed executor.
  *
@@ -1556,6 +1442,20 @@ public:
     void recv(RecvType *recv_buffer, const int recv_count,
               const int source_rank, const int recv_tag,
               MPI_Request *req = nullptr) const;
+
+    // MPI_Put
+    template <typename PutType>
+    void put(const PutType *origin_buffer, const int origin_count,
+             const int target_rank, const unsigned int target_disp,
+             const int target_count, MPI_Win window,
+             MPI_Request *req = nullptr) const;
+
+    // MPI_Get
+    template <typename GetType>
+    void get(GetType *origin_buffer, const int origin_count,
+             const int target_rank, const unsigned int target_disp,
+             const int target_count, MPI_Win window,
+             MPI_Request *req = nullptr) const;
 
     // MPI_Gather
     template <typename SendType, typename RecvType>
