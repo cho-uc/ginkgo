@@ -181,7 +181,7 @@ __forceinline__ __device__ T atomic_max(T *__restrict__ addr, T val)
     }
 
 
-#define GKO_BIND_ATOMIC_Max(ValueType)               \
+#define GKO_BIND_ATOMIC_MAX(ValueType)               \
     __forceinline__ __device__ ValueType atomic_max( \
         ValueType *__restrict__ addr, ValueType val) \
     {                                                \
