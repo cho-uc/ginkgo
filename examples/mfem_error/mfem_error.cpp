@@ -48,8 +48,9 @@ std::shared_ptr<gko::solver::Cg<typename MtxType::value_type>> gen_solver(
     using index_type = typename MtxType::index_type;
     const gko::remove_complex<value_type> reduction_factor{1e-12};
     using precond = Precond;
+    /*
     std::shared_ptr<gko::LinOpFactory> factorization;
-    if (exec == exec->get_master() || true) {
+    if (exec == exec->get_master()) {
         factorization =
             share(gko::factorization::ParIlu<value_type, index_type>::build()
                       .with_iterations(100u)
@@ -60,6 +61,13 @@ std::shared_ptr<gko::solver::Cg<typename MtxType::value_type>> gen_solver(
     }
     std::shared_ptr<typename precond::Factory> ilu_precond =
         precond::build().with_factorization_factory(factorization).on(exec);
+    */
+
+    auto bj_precond = share(
+        precond::build()
+            .with_max_block_size(16u)
+            .with_storage_optimization(gko::precision_reduction::autodetect())
+            .on(exec));
     auto solver_gen =
         gko::solver::Cg<value_type>::build()
             .with_criteria(
@@ -67,7 +75,7 @@ std::shared_ptr<gko::solver::Cg<typename MtxType::value_type>> gen_solver(
                 gko::stop::ResidualNormReduction<value_type>::build()
                     .with_reduction_factor(reduction_factor)
                     .on(exec))
-            .with_preconditioner(ilu_precond)
+            .with_preconditioner(bj_precond)
             .on(exec);
     return solver_gen->generate(mtx);
 }
@@ -162,16 +170,19 @@ void compare(const CsrType *a, const CsrType *b, double delta = 1e-1)
 
 int main(int argc, char *argv[])
 {
-    using ValueType = double;
-    using RealValueType = gko::remove_complex<ValueType>;
-    using IndexType = int;
-    using vec = gko::matrix::Dense<ValueType>;
-    using real_vec = gko::matrix::Dense<RealValueType>;
-    using mtx = gko::matrix::Csr<ValueType, IndexType>;
-    using cg = gko::solver::Cg<ValueType>;
+    using value_type = double;
+    using real_value_type = gko::remove_complex<value_type>;
+    using index_type = int;
+    using vec = gko::matrix::Dense<value_type>;
+    using real_vec = gko::matrix::Dense<real_value_type>;
+    using mtx = gko::matrix::Csr<value_type, index_type>;
+    using cg = gko::solver::Cg<value_type>;
+    using precond = gko::preconditioner::Jacobi<value_type, index_type>;
+    /*
     using precond =
-        gko::preconditioner::Ilu<gko::solver::LowerTrs<ValueType>,
-                                 gko::solver::UpperTrs<ValueType>, false>;
+        gko::preconditioner::Ilu<gko::solver::LowerTrs<value_type>,
+                                 gko::solver::UpperTrs<value_type>, false>;
+    */
 
     // Print the ginkgo version information.
     std::cout << gko::version_info::get() << std::endl;
@@ -197,6 +208,12 @@ int main(int argc, char *argv[])
     hsolver->apply(lend(b), lend(x));
     validate_result(A.get(), b.get(), x.get());
 
+    auto mtx_device = share(clone(cuda, A));
+    auto dsolver = gen_solver<precond>(cuda, mtx_device);
+    dsolver->apply(lend(b), lend(dx));
+    validate_result(A.get(), b.get(), dx.get());
+
+    /*
     auto extract_l_mtx = [](const cg *solver) {
         return static_cast<const precond *>(solver->get_preconditioner().get())
             ->get_l_solver()
@@ -210,13 +227,9 @@ int main(int argc, char *argv[])
     auto hL = extract_l_mtx(hsolver.get());
     auto hU = extract_u_mtx(hsolver.get());
 
-    auto mtx_device = share(clone(cuda, A));
-    auto dsolver = gen_solver<precond>(cuda, mtx_device);
-    dsolver->apply(lend(b), lend(dx));
-    validate_result(A.get(), b.get(), dx.get());
-
     auto dL = extract_l_mtx(dsolver.get());
     auto dU = extract_u_mtx(dsolver.get());
 
     // compare(hL.get(), dL.get());
+    */
 }
