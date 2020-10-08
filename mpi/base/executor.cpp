@@ -104,6 +104,26 @@ mpi::communicator::communicator(const MPI_Comm &comm_in, int color, int key)
 mpi::communicator::~communicator() { bindings::mpi::free_comm(this->comm_); }
 
 
+mpi::info::info() { bindings::mpi::create_info(&this->info_); }
+
+
+void mpi::info::add(std::string key, std::string value)
+{
+    this->key_value_[key] = value;
+    bindings::mpi::add_info_key_value_pair(&this->info_, key.c_str(),
+                                           value.c_str());
+}
+
+
+void mpi::info::remove(std::string key)
+{
+    bindings::mpi::remove_info_key_value_pair(&this->info_, key.c_str());
+}
+
+
+mpi::info::~info() { bindings::mpi::free_info(&this->info_); }
+
+
 bool mpi::communicator::compare(const MPI_Comm &comm) const
 {
     return bindings::mpi::compare_comm(this->comm_, comm);

@@ -67,7 +67,7 @@ protected:
         mpi_exec2 = gko::MpiExecutor::create(host);
         auto comm2 = mpi_exec2->get_communicator();
         rank = mpi_exec2->get_my_rank(comm2);
-        cuda_exec = gko::CudaExecutor::create(rank, host);
+        cuda_exec = gko::CudaExecutor::create(0, host);
         mpi_exec = gko::MpiExecutor::create(cuda_exec);
         sub_exec = mpi_exec->get_sub_executor();
         sub_exec2 = mpi_exec2->get_sub_executor();

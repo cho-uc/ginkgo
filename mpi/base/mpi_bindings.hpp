@@ -169,6 +169,31 @@ inline void flush_all_local_windows(MPI_Win *win)
 }
 
 
+inline void create_info(MPI_Info *info)
+{
+    GKO_ASSERT_NO_MPI_ERRORS(MPI_Info_create(info));
+}
+
+
+inline void add_info_key_value_pair(MPI_Info *info, const char *key,
+                                    const char *value)
+{
+    GKO_ASSERT_NO_MPI_ERRORS(MPI_Info_set(*info, key, value));
+}
+
+
+inline void remove_info_key_value_pair(MPI_Info *info, const char *key)
+{
+    GKO_ASSERT_NO_MPI_ERRORS(MPI_Info_delete(*info, key));
+}
+
+
+inline void free_info(MPI_Info *info)
+{
+    GKO_ASSERT_NO_MPI_ERRORS(MPI_Info_free(info));
+}
+
+
 inline void create_op(const MPI_User_function *func, int commute, MPI_Op *op)
 {
     GKO_ASSERT_NO_MPI_ERRORS(MPI_Op_create(func, commute, op));

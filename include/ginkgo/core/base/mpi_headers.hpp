@@ -34,9 +34,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_BASE_MPI_HEADERS_HPP_
 
 
+#include <map>
 #include <memory>
 #include <mutex>
 #include <sstream>
+#include <string>
 #include <tuple>
 #include <type_traits>
 
@@ -60,7 +62,7 @@ using MPI_Request = int;
 using MPI_Datatype = int;
 using MPI_Op = int;
 using MPI_Win = int *;
-using MPI_Info = int;
+using MPI_Info = int *;
 
 #ifndef MPI_COMM_WORLD
 #define MPI_COMM_WORLD 0
@@ -139,12 +141,26 @@ private:
 };
 
 
+/**
+ * A class holding and operating on the MPI_Info class. Stores the key value
+ * pair as a map and provides methods to access these values with keys as
+ * strings.
+ */
 class info {
-    info(std::string &key, std::string &val);
+    info();
+
+    void remove(std::string key);
+
+    std::string &at(std::string &key) { return this->key_value_.at(key); }
+
+    void add(std::string key, std::string value);
+
+    MPI_Info get() { return this->info_; }
 
     ~info();
 
 private:
+    std::map<std::string, std::string> key_value_;
     MPI_Info info_;
 };
 
