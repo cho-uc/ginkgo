@@ -40,6 +40,20 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 
 
+/*
+MFEM build command:
+cmake ../                       \
+    -DCMAKE_BUILD_TYPE=Release  \
+    -DMFEM_USE_CUDA=YES         \
+    -DCUDA_ARCH="sm_75"         \
+    -DMFEM_USE_HIP=NO           \
+    -DMFEM_USE_GINKGO=ON        \
+    -DCMAKE_BUILD_TYPE=Release  \
+    -G "Ninja"                  \
+    -DCMAKE_PREFIX_PATH="/path/to/ginkgo/install_dir"
+*/
+
+
 template <typename Precond, typename MtxType>
 std::shared_ptr<gko::solver::Cg<typename MtxType::value_type>> gen_solver(
     std::shared_ptr<const gko::Executor> exec, std::shared_ptr<MtxType> mtx)
