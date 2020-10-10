@@ -74,7 +74,7 @@ protected:
         rank = mpi_exec->get_my_rank(comm);
         ASSERT_GT(mpi_exec->get_num_ranks(comm), 1);
         mtx = gko::initialize<Mtx>(
-            {{2, -1.0, 0.0}, {-1.0, 2, -1.0}, {0.0, -1.0, 2}}, sub_exec);
+            {{0.9, -1.0, 3.0}, {0.0, 1.0, 3.0}, {0.0, 0.0, 1.1}}, sub_exec);
         ir_factory =
             Solver::build()
                 .with_criteria(
@@ -224,18 +224,16 @@ TYPED_TEST(DistributedIr, CanSolveIndependentLocalSystems)
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
     using Solver = typename TestFixture::Solver;
-    std::shared_ptr<Solver> ir_precond =
-        Solver::build()
-            .with_criteria(gko::stop::Iteration::build().with_max_iters(5u).on(
-                this->sub_exec))
-            .on(this->sub_exec)
-            ->generate(this->mtx);
     auto b = gko::initialize<Mtx>({-1.0, 3.0, 1.0}, this->sub_exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->sub_exec);
+    auto b = gko::initialize<Mtx>(
+        {I<T>{3.9, 2.9}, I<T>{9.0, 4.0}, I<T>{2.2, 1.1}}, this->sub_exec);
+    auto x = gko::initialize<Mtx>(
+        {I<T>{0.5, 1.0}, I<T>{1.0, 2.0}, I<T>{2.0, 3.0}}, this->sub_exec);
 
     auto ir_factory =
         Solver::build()
-            .with_criteria(gko::stop::Iteration::build().with_max_iters(5u).on(
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(50u).on(
                 this->sub_exec))
             .on(this->sub_exec);
     auto solver = ir_factory->generate(this->mtx);
