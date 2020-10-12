@@ -225,15 +225,15 @@ protected:
           parameters_{factory->get_parameters()},
           system_matrix_{std::move(system_matrix)}
     {
-        GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix_);
+        GKO_ASSERT_IS_SQUARE_MATRIX_DIST(system_matrix_);
         if (parameters_.generated_solver) {
             solver_ = parameters_.generated_solver;
             GKO_ASSERT_EQUAL_DIMENSIONS(solver_, this);
         } else if (parameters_.solver) {
             solver_ = parameters_.solver->generate(system_matrix_);
         } else {
-            solver_ = matrix::Identity<ValueType>::create(this->get_executor(),
-                                                          this->get_size());
+            solver_ = matrix::Identity<ValueType>::create(
+                this->get_executor(), this->get_global_size());
         }
         relaxation_factor_ = gko::initialize<matrix::Dense<ValueType>>(
             {parameters_.relaxation_factor}, this->get_executor());

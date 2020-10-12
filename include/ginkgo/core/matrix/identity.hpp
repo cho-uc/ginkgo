@@ -94,9 +94,9 @@ protected:
      * @param size  size of the matrix (must be square)
      */
     Identity(std::shared_ptr<const Executor> exec, dim<2> size)
-        : EnableLinOp<Identity>(exec, size)
+        : EnableLinOp<Identity>(exec, size, size)
     {
-        GKO_ASSERT_IS_SQUARE_MATRIX(this);
+        GKO_ASSERT_IS_SQUARE_MATRIX_DIST(this);
     }
 
     /**
@@ -106,7 +106,9 @@ protected:
      */
     Identity(std::shared_ptr<const Executor> exec, size_type size)
         : EnableLinOp<Identity>(exec, dim<2>{size}, dim<2>{size})
-    {}
+    {
+        GKO_ASSERT_IS_SQUARE_MATRIX_DIST(this);
+    }
 
     void apply_impl(const LinOp *b, LinOp *x) const override;
 

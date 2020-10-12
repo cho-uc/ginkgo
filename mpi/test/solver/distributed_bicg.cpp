@@ -283,7 +283,7 @@ TYPED_TEST(DistributedBicg, ThrowsOnWrongPreconditionerInFactory)
     using Mtx = typename TestFixture::Mtx;
     using Solver = typename TestFixture::Solver;
     std::shared_ptr<Mtx> wrong_sized_mtx =
-        Mtx::distributed_create(this->mpi_exec, gko::dim<2>{1, 3});
+        Mtx::distributed_create(this->mpi_exec, gko::dim<2>{2, 2});
     std::shared_ptr<Solver> bicg_precond =
         Solver::build()
             .with_criteria(gko::stop::Iteration::build().with_max_iters(3u).on(
@@ -299,6 +299,18 @@ TYPED_TEST(DistributedBicg, ThrowsOnWrongPreconditionerInFactory)
             .on(this->mpi_exec);
 
     ASSERT_THROW(bicg_factory->generate(this->mtx), gko::DimensionMismatch);
+}
+
+
+TYPED_TEST(DistributedBicg, ThrowsOnRectangularMatrixInFactory)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using Solver = typename TestFixture::Solver;
+    std::shared_ptr<Mtx> rectangular_mtx =
+        Mtx::create(this->mpi_exec, gko::dim<2>{1, 2});
+
+    ASSERT_THROW(this->bicg_factory->generate(rectangular_mtx),
+                 gko::DimensionMismatch);
 }
 
 

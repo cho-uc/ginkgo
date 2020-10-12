@@ -382,6 +382,19 @@ protected:
                     const gko::LinOp *beta, gko::LinOp *x) const override
     {}
 
+    void distributed_apply_impl(const gko::LinOp *b,
+                                gko::LinOp *x) const override
+    {
+        this->apply_impl(b, x);
+    }
+
+    void distributed_apply_impl(const gko::LinOp *alpha, const gko::LinOp *b,
+                                const gko::LinOp *beta,
+                                gko::LinOp *x) const override
+    {
+        this->apply_impl(alpha, b, beta, x);
+    }
+
 private:
     Type value_;
 };
