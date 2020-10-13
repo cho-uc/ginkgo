@@ -194,12 +194,21 @@ constexpr size_type byte_size = CHAR_BIT;
 /**
  * Value for an invalid index.
  */
-constexpr int invalid_index = static_cast<int>(-1);
+constexpr int invalid_int = static_cast<int>(-1);
+
 
 /**
  * Value for an invalid unsigned int.
  */
-constexpr unsigned int invalid_unsigned_int = static_cast<unsigned int>(-1);
+const unsigned int invalid_unsigned_int =
+    std::numeric_limits<unsigned int>::max();
+
+
+/**
+ * Value for an invalid index.
+ */
+constexpr gko::size_type invalid_size_type =
+    std::numeric_limits<gko::size_type>::max();
 
 
 /**

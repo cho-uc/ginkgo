@@ -459,7 +459,7 @@ size_type IndexSet<IndexType>::get_local_index(
     GKO_ASSERT_CONDITION(global_index < get_size());
 
     // return immediately if the index set is empty
-    if (is_empty()) return invalid_index;
+    if (is_empty()) return invalid_size_type;
 
     // check whether the index is in the largest subset. use the result to
     // perform a one-sided binary search afterward
@@ -485,7 +485,7 @@ size_type IndexSet<IndexType>::get_local_index(
 
     // if global_index is not in this set
     if (p == subset_end || p->end_ == global_index || p->begin_ > global_index)
-        return invalid_index;
+        return invalid_size_type;
 
     GKO_ASSERT_CONDITION(p != subsets_.end());
     GKO_ASSERT_CONDITION(p->begin_ <= global_index);

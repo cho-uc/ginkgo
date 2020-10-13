@@ -463,7 +463,7 @@ public:
          * Construct an invalid accessor for the IndexSet.
          */
         explicit IntervalAccessor(const IndexSet *idxset)
-            : index_set_(idxset), subset_idx_(invalid_index)
+            : index_set_(idxset), subset_idx_(invalid_size_type)
         {}
 
         /**
@@ -532,7 +532,8 @@ public:
         {
             index_set_ = other.index_set_;
             subset_idx_ = other.subset_idx_;
-            GKO_ASSERT_CONDITION(subset_idx_ == invalid_index || is_valid());
+            GKO_ASSERT_CONDITION(subset_idx_ == invalid_size_type ||
+                                 is_valid());
             return *this;
         }
 
@@ -565,7 +566,7 @@ public:
 
             // set ourselves to invalid if we walk off the end
             if (subset_idx_ >= index_set_->subsets_.size()) {
-                subset_idx_ = invalid_index;
+                subset_idx_ = invalid_size_type;
             }
         }
 
@@ -682,12 +683,13 @@ public:
             GKO_ASSERT_CONDITION(accessor_.index_set_ ==
                                  other.accessor_.index_set_);
 
-            const size_type lhs = (accessor_.subset_idx_ == invalid_index)
+            const size_type lhs = (accessor_.subset_idx_ == invalid_size_type)
                                       ? accessor_.index_set_->subsets_.size()
                                       : accessor_.subset_idx_;
-            const size_type rhs = (other.accessor_.subset_idx_ == invalid_index)
-                                      ? accessor_.index_set_->subsets_.size()
-                                      : other.accessor_.subset_idx_;
+            const size_type rhs =
+                (other.accessor_.subset_idx_ == invalid_size_type)
+                    ? accessor_.index_set_->subsets_.size()
+                    : other.accessor_.subset_idx_;
 
             if (lhs > rhs)
                 return static_cast<int>(lhs - rhs);
@@ -738,8 +740,8 @@ public:
          */
         explicit ElementIterator(const IndexSet *index_set)
             : index_set_(index_set),
-              subset_index_(invalid_index),
-              index_(invalid_index)
+              subset_index_(invalid_size_type),
+              index_(invalid_size_type)
         {}
 
         /**
@@ -748,7 +750,8 @@ public:
         bool is_valid() const
         {
             GKO_ASSERT_CONDITION(
-                (subset_index_ == invalid_index && index_ == invalid_index) ||
+                (subset_index_ == invalid_size_type &&
+                 index_ == invalid_size_type) ||
                 (subset_index_ < index_set_->subsets_.size() &&
                  index_ < index_set_->subsets_[subset_index_].end_));
 
@@ -849,11 +852,11 @@ public:
 
             GKO_ASSERT_CONDITION(other.subset_index_ <
                                      index_set_->subsets_.size() ||
-                                 other.subset_index_ == invalid_index);
+                                 other.subset_index_ == invalid_size_type);
 
             // We might have walked too far because we went until the end of
             // other.subset_index, so walk backwards to other.index:
-            if (other.subset_index_ != invalid_index)
+            if (other.subset_index_ != invalid_size_type)
                 c -= index_set_->subsets_[other.subset_index_].end_ -
                      other.index_;
 
@@ -887,8 +890,8 @@ public:
                     index_ = index_set_->subsets_[subset_index_].begin_;
                 } else {
                     // we just fell off the end, set to invalid:
-                    subset_index_ = invalid_index;
-                    index_ = invalid_index;
+                    subset_index_ = invalid_size_type;
+                    index_ = invalid_size_type;
                 }
             }
         }
@@ -952,7 +955,7 @@ private:
     struct subset {
         subset() = delete;
         subset(const size_type begin, const size_type end)
-            : begin_(begin), end_(end), superset_index_(invalid_index)
+            : begin_(begin), end_(end), superset_index_(invalid_size_type)
         {}
 
         friend inline bool operator<(const subset &subset1,
