@@ -61,12 +61,14 @@ IndexSet<IndexType>::IndexSet(IndexSet<IndexType> &&other) noexcept
     : subsets_(std::move(other.subsets_)),
       is_merged_(other.is_merged_),
       index_space_size_(other.index_space_size_),
-      largest_subset_(other.largest_subset_)
+      largest_subset_(other.largest_subset_),
+      exec_(other.exec_)
 {
     other.subsets_.clear();
     other.is_merged_ = true;
     other.index_space_size_ = 0;
     other.largest_subset_ = invalid_unsigned_int;
+    other.exec_ = nullptr;
 
     merge();
 }
@@ -561,7 +563,7 @@ IndexSet<IndexType> IndexSet<IndexType>::operator&(
 
     typename std::vector<subset>::const_iterator r1 = subsets_.begin(),
                                                  r2 = other.subsets_.begin();
-    IndexSet<IndexType> result(get_size());
+    IndexSet<IndexType> result(get_executor(), get_size());
 
     while ((r1 != subsets_.end()) && (r2 != other.subsets_.end())) {
         // if r1 and r2 do not overlap at all, then move the pointer that

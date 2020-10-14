@@ -54,6 +54,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 
 
+#include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
 
@@ -75,16 +76,20 @@ public:
     IndexSet() noexcept
         : is_merged_(true),
           largest_subset_(invalid_unsigned_int),
-          index_space_size_(0)
+          index_space_size_(0),
+          exec_(nullptr)
+
     {}
 
     /**
      * Constructor that also sets the overall size of the index range.
      */
-    explicit IndexSet(const size_type size)
+    explicit IndexSet(std::shared_ptr<const gko::Executor> executor,
+                      const size_type size)
         : is_merged_(true),
           largest_subset_(invalid_unsigned_int),
-          index_space_size_(size)
+          index_space_size_(size),
+          exec_(executor)
     {}
 
     /**
@@ -97,6 +102,7 @@ public:
         subsets_ = other.subsets_;
         largest_subset_ = other.largest_subset_;
         index_space_size_ = other.index_space_size_;
+        exec_ = other.exec_;
     }
 
     /**
@@ -108,6 +114,7 @@ public:
         subsets_ = other.subsets_;
         largest_subset_ = other.largest_subset_;
         index_space_size_ = other.index_space_size_;
+        exec_ = other.exec_;
 
         return *this;
     }
@@ -128,14 +135,27 @@ public:
         subsets_ = std::move(other.subsets_);
         largest_subset_ = other.largest_subset_;
         index_space_size_ = other.index_space_size_;
+        exec_ = other.exec_;
 
         other.subsets_.clear();
         other.is_merged_ = true;
         other.index_space_size_ = 0;
         other.largest_subset_ = invalid_unsigned_int;
+        other.exec_ = nullptr;
         merge();
 
         return *this;
+    }
+
+
+    /**
+     * Returns the Executor associated with the index set.
+     *
+     * @return the Executor associated with the index set
+     */
+    std::shared_ptr<const gko::Executor> get_executor() const noexcept
+    {
+        return exec_;
     }
 
 
@@ -295,7 +315,7 @@ public:
         // avoid repeated calls to IndexSet::merge() which gets called upon
         // merging two index sets, so we want to be in the other branch then.
         if (tmp_subsets.size() > 9) {
-            IndexSet<IndexType> tmp_set(get_size());
+            IndexSet<IndexType> tmp_set(exec_, get_size());
             tmp_set.subsets_.reserve(tmp_subsets.size());
             for (const auto &i : tmp_subsets)
                 tmp_set.add_subset(i.first, i.second);
@@ -999,6 +1019,7 @@ private:
     mutable size_type largest_subset_;
     mutable std::mutex merge_mutex_;
     size_type index_space_size_;
+    std::shared_ptr<const gko::Executor> exec_;
 };
 
 

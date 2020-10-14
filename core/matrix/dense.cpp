@@ -668,7 +668,7 @@ inline void read_impl(MatrixType *mtx, const MatrixData &data,
     auto mpi_exec = as<gko::MpiExecutor>(exec.get());
     auto rank = mpi_exec->get_my_rank(mpi_exec->get_communicator());
     auto local_num_rows = dist.get_num_elems();
-    auto row_idx_set = gko::IndexSet<size_type>{data.size[0]};
+    auto row_idx_set = gko::IndexSet<size_type>{exec, data.size[0]};
     row_idx_set.add_indices(dist.get_const_data(),
                             dist.get_const_data() + local_num_rows);
     auto tmp = MatrixType::create(exec->get_master(), data.size, row_idx_set,
@@ -816,7 +816,7 @@ std::unique_ptr<Dense<ValueType>> Dense<ValueType>::gather_on_root(
                          gko::mpi::op_type::sum);
     auto max_index_size = row_set.get_largest_element_in_set();
     auto index_set =
-        gko::IndexSet<gko::int32>{(max_index_size + 1) * mat_stride};
+        gko::IndexSet<gko::int32>{exec, (max_index_size + 1) * mat_stride};
     auto elem = row_set.begin();
     for (auto i = 0; i < local_num_rows; ++i) {
         index_set.add_dense_row(*elem, mat_stride);
@@ -855,7 +855,7 @@ std::unique_ptr<Dense<ValueType>> Dense<ValueType>::gather_on_all(
                          gko::mpi::op_type::sum);
     auto max_index_size = row_set.get_largest_element_in_set();
     auto index_set =
-        gko::IndexSet<gko::int32>{(max_index_size + 1) * mat_stride};
+        gko::IndexSet<gko::int32>{exec, (max_index_size + 1) * mat_stride};
     auto elem = row_set.begin();
     for (auto i = 0; i < local_num_rows; ++i) {
         index_set.add_dense_row(*elem, mat_stride);

@@ -300,7 +300,7 @@ protected:
     Coo(std::shared_ptr<const Executor> exec, const dim<2> &size = dim<2>{},
         size_type num_nonzeros = {})
         : EnableLinOp<Coo>(exec, size, size),
-          index_set_(size[0] + 1),
+          index_set_(exec, size[0] + 1),
           values_(exec, num_nonzeros),
           col_idxs_(exec, num_nonzeros),
           row_idxs_(exec, num_nonzeros)
@@ -350,7 +350,7 @@ protected:
     Coo(std::shared_ptr<const Executor> exec, const dim<2> &size,
         ValuesArray &&values, ColIdxsArray &&col_idxs, RowIdxsArray &&row_idxs)
         : EnableLinOp<Coo>(exec, size, size),
-          index_set_(size[0] + 1),
+          index_set_(exec, size[0] + 1),
           values_{exec, std::forward<ValuesArray>(values)},
           col_idxs_{exec, std::forward<ColIdxsArray>(col_idxs)},
           row_idxs_{exec, std::forward<RowIdxsArray>(row_idxs)}
@@ -453,7 +453,7 @@ protected:
         row_start.set_executor(exec->get_master());
         auto max_index_size = row_set.get_largest_element_in_set();
         auto index_set =
-            gko::IndexSet<itype>{(max_index_size + 1) * global_size[1]};
+            gko::IndexSet<itype>{exec, (max_index_size + 1) * global_size[1]};
         for (auto i = 0; i < num_rows; ++i) {
             index_set.add_subset(row_start.get_const_data()[i] -
                                      num_nnz_per_row.get_const_data()[i],

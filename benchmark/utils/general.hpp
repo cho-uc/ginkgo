@@ -312,7 +312,7 @@ bool verify_dist(std::shared_ptr<gko::Executor> exec,
     int max_flag = 0;
     int min_flag = 0;
     auto local_num_rows = arr.get_num_elems();
-    auto index_set = gko::IndexSet<size_type>{num_rows};
+    auto index_set = gko::IndexSet<size_type>{exec, num_rows};
     index_set.add_indices(arr.get_const_data(),
                           arr.get_const_data() + local_num_rows);
     auto gathered_dist = arr.gather_on_root(exec, index_set);

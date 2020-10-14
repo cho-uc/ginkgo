@@ -124,7 +124,7 @@ TYPED_TEST(Dense, CanBeConstructedWithSizeAndStride)
 
 TYPED_TEST(Dense, CanBeConstructedWithSizeIndexSetAndStride)
 {
-    gko::IndexSet<gko::size_type> ind_set{6};
+    gko::IndexSet<gko::size_type> ind_set{this->exec, 6};
     ind_set.add_index(2);
     auto m = gko::matrix::Dense<TypeParam>::create(
         this->exec, gko::dim<2>{2, 3}, ind_set, 4);
@@ -159,7 +159,7 @@ TYPED_TEST(Dense, CanSetIndexSet)
     ASSERT_EQ(index_set.get_size(), 3);
     ASSERT_EQ(m->get_global_size(), gko::dim<2>(2, 3));
 
-    gko::IndexSet<gko::size_type> new_idx_set{10};
+    gko::IndexSet<gko::size_type> new_idx_set{this->exec, 10};
     new_idx_set.add_subset(1, 4);
     new_idx_set.add_subset(5, 7);
     m->set_index_set(new_idx_set);

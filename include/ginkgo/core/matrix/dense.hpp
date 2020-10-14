@@ -544,7 +544,7 @@ protected:
         : EnableLinOp<Dense>(exec, size, size),
           values_(exec, size[0] * stride),
           stride_(stride),
-          index_set_(size[0] + 1)
+          index_set_(exec, size[0] + 1)
     {
         index_set_.add_subset(0, size[0]);
     }
@@ -613,7 +613,7 @@ protected:
         : EnableLinOp<Dense>(exec, size, size),
           values_{exec, std::forward<ValuesArray>(values)},
           stride_{stride},
-          index_set_{size[0]}
+          index_set_{exec, size[0]}
     {
         index_set_.add_subset(0, size[0]);
         GKO_ENSURE_IN_BOUNDS((size[0] - 1) * stride + size[1] - 1,
@@ -675,7 +675,8 @@ protected:
                                                   size_type stride)
     {
         auto max_index_size = row_set.get_largest_element_in_set() + 1;
-        auto values_set = gko::IndexSet<size_type>{max_index_size * stride};
+        auto values_set =
+            gko::IndexSet<size_type>{exec, max_index_size * stride};
         auto mpi_exec = gko::as<MpiExecutor>(exec.get());
         auto comm = mpi_exec->get_communicator();
         auto num_ranks = mpi_exec->get_num_ranks(comm);

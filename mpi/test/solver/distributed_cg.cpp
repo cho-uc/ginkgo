@@ -372,7 +372,7 @@ TYPED_TEST(DistributedCg, CanSolveDistributedSystems)
     using value_type = typename TestFixture::value_type;
     using size_type = gko::size_type;
     using Solver = typename TestFixture::Solver;
-    gko::IndexSet<size_type> row_dist{4};
+    gko::IndexSet<size_type> row_dist{this->mpi_exec, 4};
     if (this->rank == 0) {
         row_dist.add_index(0);
         row_dist.add_index(2);

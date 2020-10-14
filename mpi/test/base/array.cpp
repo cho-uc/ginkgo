@@ -120,7 +120,7 @@ TYPED_TEST(DistributedArray, CanDistributeArray)
     gko::Array<value_type> m{this->mpi_exec};
     gko::Array<value_type> orig_array{sub_exec};
     gko::Array<value_type> lm{sub_exec};
-    gko::IndexSet<gko::int32> index_set{20};
+    gko::IndexSet<gko::int32> index_set{this->mpi_exec, 20};
     this->mpi_exec->set_root_rank(0);
     if (this->rank == 0) {
         // clang-format off
@@ -168,7 +168,7 @@ TYPED_TEST(DistributedArray, CanDistributeNonContiguousArrays)
     gko::Array<value_type> m{this->mpi_exec};
     gko::Array<value_type> orig_array{sub_exec};
     gko::Array<value_type> lm{sub_exec};
-    gko::IndexSet<gko::int32> index_set{20};
+    gko::IndexSet<gko::int32> index_set{this->mpi_exec, 20};
     this->mpi_exec->set_root_rank(0);
     if (this->rank == 0) {
         data = new value_type[20]{1.0, 2.0,  -1.0, 2.0,  5.0,  4.0, 1.0,
@@ -210,7 +210,7 @@ TYPED_TEST(DistributedArray, CanGatherArrayOnRoot)
     gko::Array<value_type> coll_array{this->mpi_exec};
     gko::Array<value_type> comp_array{sub_exec};
     gko::Array<value_type> local_array{sub_exec};
-    gko::IndexSet<gko::int32> index_set{20};
+    gko::IndexSet<gko::int32> index_set{this->mpi_exec, 20};
     this->mpi_exec->set_root_rank(0);
     if (this->rank == 0) {
         // clang-format off
@@ -258,7 +258,7 @@ TYPED_TEST(DistributedArray, CanGatherNonContiguousArraysOnRoot)
     gko::Array<value_type> coll_array{this->mpi_exec};
     gko::Array<value_type> comp_array{sub_exec};
     gko::Array<value_type> local_array{sub_exec};
-    gko::IndexSet<gko::int32> index_set{20};
+    gko::IndexSet<gko::int32> index_set{this->mpi_exec, 20};
     this->mpi_exec->set_root_rank(0);
     if (this->rank == 0) {
         comp_data = new value_type[20]{1.0, 2.0,  -1.0, 2.0,  5.0,  4.0, 1.0,
@@ -299,7 +299,7 @@ TYPED_TEST(DistributedArray, CanGatherNonContiguousArraysOnAllRanks)
     gko::Array<value_type> coll_array{this->mpi_exec};
     gko::Array<value_type> comp_array{sub_exec};
     gko::Array<value_type> local_array{sub_exec};
-    gko::IndexSet<gko::int32> index_set{20};
+    gko::IndexSet<gko::int32> index_set{this->mpi_exec, 20};
     this->mpi_exec->set_root_rank(0);
     if (this->rank == 0) {
         data = new value_type[10]{1.0, 2.0, -1.0, 2.0,  5.0,

@@ -309,7 +309,7 @@ TYPED_TEST(DistributedCsr, CanDistributeData)
     value_type *local_values;
     index_type *local_col_idxs;
     index_type *local_row_ptrs;
-    gko::IndexSet<size_type> row_dist{6};
+    gko::IndexSet<size_type> row_dist{this->mpi_exec, 6};
     size_type num_rows;
     auto global_size = gko::dim<2>(5, 5);
     if (this->rank == 0) {
@@ -398,7 +398,7 @@ TYPED_TEST(DistributedCsr, CanDistributeDataNonContiguously)
     value_type *local_values;
     index_type *local_col_idxs;
     index_type *local_row_ptrs;
-    gko::IndexSet<size_type> row_dist{6};
+    gko::IndexSet<size_type> row_dist{this->mpi_exec, 6};
     size_type num_rows;
     auto global_size = gko::dim<2>(5, 5);
     if (this->rank == 0) {
@@ -493,7 +493,7 @@ TYPED_TEST(DistributedCsr, AppliesToLocalDense)
     value_type *local_values;
     index_type *local_col_idxs;
     index_type *local_row_ptrs;
-    gko::IndexSet<size_type> row_dist{6};
+    gko::IndexSet<size_type> row_dist{this->mpi_exec, 6};
     size_type num_rows;
     auto global_size = gko::dim<2>(5, 5);
     if (this->rank == 0) {
@@ -599,7 +599,7 @@ TYPED_TEST(DistributedCsr, AppliesToDistributedDense)
     value_type *local_values;
     index_type *local_col_idxs;
     index_type *local_row_ptrs;
-    gko::IndexSet<size_type> row_dist{6};
+    gko::IndexSet<size_type> row_dist{this->mpi_exec, 6};
     size_type num_rows;
     auto global_size = gko::dim<2>(5, 5);
     if (this->rank == 0) {
@@ -708,7 +708,7 @@ TYPED_TEST(DistributedCsr, AdvancedAppliesToLocalDense)
     value_type *local_values;
     index_type *local_col_idxs;
     index_type *local_row_ptrs;
-    gko::IndexSet<size_type> row_dist{6};
+    gko::IndexSet<size_type> row_dist{this->mpi_exec, 6};
     size_type num_rows;
     auto global_size = gko::dim<2>(5, 5);
     if (this->rank == 0) {
@@ -819,7 +819,7 @@ TYPED_TEST(DistributedCsr, AdvancedAppliesToDistributedDense)
     value_type *local_values;
     index_type *local_col_idxs;
     index_type *local_row_ptrs;
-    gko::IndexSet<size_type> row_dist{6};
+    gko::IndexSet<size_type> row_dist{this->mpi_exec, 6};
     size_type num_rows;
     auto global_size = gko::dim<2>(5, 5);
     if (this->rank == 0) {

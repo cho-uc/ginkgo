@@ -62,11 +62,6 @@ protected:
         ASSERT_EQ(a.get_size(), 10);
     }
 
-    // static void assert_empty(gko::matrix::IndexSet<value_type> *m)
-    // {
-    //     ASSERT_EQ(m->get_size(), 0);
-    // }
-
 
     std::shared_ptr<const gko::Executor> exec;
 };
@@ -84,7 +79,7 @@ TYPED_TEST(IndexSet, CanBeEmpty)
 
 TYPED_TEST(IndexSet, CanBeConstructedWithSize)
 {
-    auto idx_set = gko::IndexSet<TypeParam>{10};
+    auto idx_set = gko::IndexSet<TypeParam>{this->exec, 10};
     ASSERT_EQ(idx_set.get_size(), 10);
     ASSERT_TRUE(idx_set.is_empty());
 }
@@ -92,7 +87,7 @@ TYPED_TEST(IndexSet, CanBeConstructedWithSize)
 
 TYPED_TEST(IndexSet, CanBeCopyConstructed)
 {
-    auto idx_set = gko::IndexSet<TypeParam>{10};
+    auto idx_set = gko::IndexSet<TypeParam>{this->exec, 10};
     auto idx_set2(idx_set);
     ASSERT_EQ(idx_set2, idx_set);
 }
@@ -100,7 +95,7 @@ TYPED_TEST(IndexSet, CanBeCopyConstructed)
 
 TYPED_TEST(IndexSet, CanBeMoveConstructed)
 {
-    auto idx_set = gko::IndexSet<TypeParam>{10};
+    auto idx_set = gko::IndexSet<TypeParam>{this->exec, 10};
     auto idx_set2(std::move(idx_set));
     this->assert_equal_to_original(idx_set2);
 }
@@ -108,7 +103,7 @@ TYPED_TEST(IndexSet, CanBeMoveConstructed)
 
 TYPED_TEST(IndexSet, CanBeCopyAssigned)
 {
-    auto idx_set = gko::IndexSet<TypeParam>{10};
+    auto idx_set = gko::IndexSet<TypeParam>{this->exec, 10};
     auto idx_set2 = idx_set;
     ASSERT_EQ(idx_set2, idx_set);
 }
@@ -116,7 +111,7 @@ TYPED_TEST(IndexSet, CanBeCopyAssigned)
 
 TYPED_TEST(IndexSet, CanBeMoveAssigned)
 {
-    auto idx_set = gko::IndexSet<TypeParam>{10};
+    auto idx_set = gko::IndexSet<TypeParam>{this->exec, 10};
     auto idx_set2 = std::move(idx_set);
     this->assert_equal_to_original(idx_set2);
 }
@@ -124,14 +119,14 @@ TYPED_TEST(IndexSet, CanBeMoveAssigned)
 
 TYPED_TEST(IndexSet, KnowsItsSize)
 {
-    auto idx_set = gko::IndexSet<TypeParam>{10};
+    auto idx_set = gko::IndexSet<TypeParam>{this->exec, 10};
     ASSERT_EQ(idx_set.get_size(), 10);
 }
 
 
 TYPED_TEST(IndexSet, CanSetNewSize)
 {
-    auto idx_set = gko::IndexSet<TypeParam>{10};
+    auto idx_set = gko::IndexSet<TypeParam>{this->exec, 10};
     ASSERT_EQ(idx_set.get_size(), 10);
     idx_set.set_size(12);
     ASSERT_EQ(idx_set.get_size(), 12);
@@ -140,7 +135,7 @@ TYPED_TEST(IndexSet, CanSetNewSize)
 
 TYPED_TEST(IndexSet, CanStoreSubsets)
 {
-    auto idx_set = gko::IndexSet<TypeParam>{10};
+    auto idx_set = gko::IndexSet<TypeParam>{this->exec, 10};
     idx_set.add_subset(0, 5);
     ASSERT_EQ(idx_set.get_size(), 10);
     ASSERT_EQ(idx_set.get_num_elems(), 5);
@@ -149,14 +144,14 @@ TYPED_TEST(IndexSet, CanStoreSubsets)
 
 TYPED_TEST(IndexSet, FailsforIncorrectIndexSize)
 {
-    auto idx_set = gko::IndexSet<TypeParam>{10};
+    auto idx_set = gko::IndexSet<TypeParam>{this->exec, 10};
     ASSERT_THROW(idx_set.add_subset(0, 15), gko::ConditionUnsatisfied);
 }
 
 
 TYPED_TEST(IndexSet, CanStoreNonContiguousSubsets)
 {
-    auto idx_set = gko::IndexSet<TypeParam>{10};
+    auto idx_set = gko::IndexSet<TypeParam>{this->exec, 10};
     idx_set.add_subset(0, 3);
     idx_set.add_subset(6, 10);
     ASSERT_EQ(idx_set.get_size(), 10);
@@ -167,7 +162,7 @@ TYPED_TEST(IndexSet, CanStoreNonContiguousSubsets)
 
 TYPED_TEST(IndexSet, KnowsNumberOfItsSubsets)
 {
-    auto idx_set = gko::IndexSet<TypeParam>{10};
+    auto idx_set = gko::IndexSet<TypeParam>{this->exec, 10};
     idx_set.add_subset(0, 3);
     idx_set.add_subset(6, 10);
     ASSERT_EQ(idx_set.get_num_subsets(), 2);
@@ -177,7 +172,7 @@ TYPED_TEST(IndexSet, KnowsNumberOfItsSubsets)
 
 TYPED_TEST(IndexSet, CanMergeContinuousSubsets)
 {
-    auto idx_set = gko::IndexSet<TypeParam>{10};
+    auto idx_set = gko::IndexSet<TypeParam>{this->exec, 10};
     idx_set.add_subset(0, 5);
     idx_set.add_subset(4, 10);
     ASSERT_EQ(idx_set.get_num_subsets(), 1);
@@ -187,7 +182,7 @@ TYPED_TEST(IndexSet, CanMergeContinuousSubsets)
 
 TYPED_TEST(IndexSet, CanAddAnIndex)
 {
-    auto idx_set = gko::IndexSet<TypeParam>{10};
+    auto idx_set = gko::IndexSet<TypeParam>{this->exec, 10};
     idx_set.add_subset(0, 3);
     idx_set.add_subset(4, 10);
     idx_set.add_index(3);
@@ -200,8 +195,8 @@ TYPED_TEST(IndexSet, CanAddAnIndex)
 
 TYPED_TEST(IndexSet, CanAddRangeOfIndices)
 {
-    auto idx_set = gko::IndexSet<TypeParam>{10};
-    auto idx_set2 = gko::IndexSet<TypeParam>{7};
+    auto idx_set = gko::IndexSet<TypeParam>{this->exec, 10};
+    auto idx_set2 = gko::IndexSet<TypeParam>{this->exec, 7};
     idx_set.add_subset(0, 3);
     idx_set2.add_subset(1, 5);
     ASSERT_EQ(idx_set2.get_num_elems(), 4);
@@ -213,7 +208,7 @@ TYPED_TEST(IndexSet, CanAddRangeOfIndices)
 
 TYPED_TEST(IndexSet, CanAddRangeOfIndicesWithIterators)
 {
-    auto idx_set2 = gko::IndexSet<TypeParam>{11};
+    auto idx_set2 = gko::IndexSet<TypeParam>{this->exec, 11};
     auto indices = std::vector<TypeParam>{0, 2, 1, 6, 8};
     idx_set2.add_subset(1, 5);
     ASSERT_EQ(idx_set2.get_num_elems(), 4);
@@ -228,7 +223,7 @@ TYPED_TEST(IndexSet, CanAddRangeOfIndicesWithIterators)
 
 TYPED_TEST(IndexSet, KnowsItsElements)
 {
-    auto idx_set = gko::IndexSet<TypeParam>{10};
+    auto idx_set = gko::IndexSet<TypeParam>{this->exec, 10};
     idx_set.add_subset(0, 3);
     ASSERT_TRUE(idx_set.is_element(0));
     ASSERT_FALSE(idx_set.is_element(3));
@@ -237,7 +232,7 @@ TYPED_TEST(IndexSet, KnowsItsElements)
 
 TYPED_TEST(IndexSet, CanGetGlobalIndex)
 {
-    auto idx_set = gko::IndexSet<TypeParam>{10};
+    auto idx_set = gko::IndexSet<TypeParam>{this->exec, 10};
     idx_set.add_subset(0, 3);
     idx_set.add_subset(5, 7);
     ASSERT_EQ(idx_set.get_num_elems(), 5);
@@ -247,7 +242,7 @@ TYPED_TEST(IndexSet, CanGetGlobalIndex)
 
 TYPED_TEST(IndexSet, CanGetLocalIndex)
 {
-    auto idx_set = gko::IndexSet<TypeParam>{10};
+    auto idx_set = gko::IndexSet<TypeParam>{this->exec, 10};
     idx_set.add_subset(0, 3);
     idx_set.add_subset(5, 7);
     ASSERT_EQ(idx_set.get_num_elems(), 5);
@@ -257,7 +252,7 @@ TYPED_TEST(IndexSet, CanGetLocalIndex)
 
 TYPED_TEST(IndexSet, CanGetLargestSubsetStartIndex)
 {
-    auto idx_set = gko::IndexSet<TypeParam>{40};
+    auto idx_set = gko::IndexSet<TypeParam>{this->exec, 40};
     idx_set.add_subset(0, 4);
     idx_set.add_subset(5, 7);
     idx_set.add_subset(10, 30);
@@ -270,7 +265,7 @@ TYPED_TEST(IndexSet, CanGetLargestSubsetStartIndex)
 
 TYPED_TEST(IndexSet, CanGetLargestElementInSet)
 {
-    auto idx_set = gko::IndexSet<TypeParam>{40};
+    auto idx_set = gko::IndexSet<TypeParam>{this->exec, 40};
     idx_set.add_subset(0, 4);
     idx_set.add_subset(10, 30);
     idx_set.add_subset(5, 7);
@@ -280,11 +275,11 @@ TYPED_TEST(IndexSet, CanGetLargestElementInSet)
 
 TYPED_TEST(IndexSet, CanCompareIndexSets)
 {
-    auto idx_set = gko::IndexSet<TypeParam>{12};
-    auto idx_set2 = gko::IndexSet<TypeParam>{12};
-    auto idx_set3 = gko::IndexSet<TypeParam>{12};
-    auto idx_set4 = gko::IndexSet<TypeParam>{12};
-    auto idx_set5 = gko::IndexSet<TypeParam>{11};
+    auto idx_set = gko::IndexSet<TypeParam>{this->exec, 12};
+    auto idx_set2 = gko::IndexSet<TypeParam>{this->exec, 12};
+    auto idx_set3 = gko::IndexSet<TypeParam>{this->exec, 12};
+    auto idx_set4 = gko::IndexSet<TypeParam>{this->exec, 12};
+    auto idx_set5 = gko::IndexSet<TypeParam>{this->exec, 11};
     idx_set.add_subset(2, 10);
     idx_set2.add_subset(2, 10);
     idx_set3.add_subset(3, 11);
@@ -298,9 +293,9 @@ TYPED_TEST(IndexSet, CanCompareIndexSets)
 
 TYPED_TEST(IndexSet, CanGetIntersectionOfSets)
 {
-    auto idx_set = gko::IndexSet<TypeParam>{12};
-    auto idx_set2 = gko::IndexSet<TypeParam>{12};
-    auto idx_set3 = gko::IndexSet<TypeParam>{12};
+    auto idx_set = gko::IndexSet<TypeParam>{this->exec, 12};
+    auto idx_set2 = gko::IndexSet<TypeParam>{this->exec, 12};
+    auto idx_set3 = gko::IndexSet<TypeParam>{this->exec, 12};
     idx_set.add_subset(0, 5);
     idx_set2.add_subset(2, 10);
     idx_set3.add_subset(2, 5);
@@ -312,9 +307,9 @@ TYPED_TEST(IndexSet, CanGetIntersectionOfSets)
 
 TYPED_TEST(IndexSet, CanSubtractASet)
 {
-    auto idx_set = gko::IndexSet<TypeParam>{12};
-    auto idx_set2 = gko::IndexSet<TypeParam>{12};
-    auto idx_set3 = gko::IndexSet<TypeParam>{12};
+    auto idx_set = gko::IndexSet<TypeParam>{this->exec, 12};
+    auto idx_set2 = gko::IndexSet<TypeParam>{this->exec, 12};
+    auto idx_set3 = gko::IndexSet<TypeParam>{this->exec, 12};
     idx_set.add_subset(0, 7);
     idx_set2.add_subset(4, 10);
     idx_set.subtract_set(idx_set2);
@@ -326,7 +321,7 @@ TYPED_TEST(IndexSet, CanSubtractASet)
 
 TYPED_TEST(IndexSet, CanBeCleared)
 {
-    auto idx_set = gko::IndexSet<TypeParam>{12};
+    auto idx_set = gko::IndexSet<TypeParam>{this->exec, 12};
     idx_set.add_subset(0, 7);
     ASSERT_EQ(idx_set.get_num_elems(), 7);
     idx_set.clear();
@@ -336,7 +331,7 @@ TYPED_TEST(IndexSet, CanBeCleared)
 
 TYPED_TEST(IndexSet, ReturnsBeginOfIndexSet)
 {
-    auto idx_set = gko::IndexSet<TypeParam>{15};
+    auto idx_set = gko::IndexSet<TypeParam>{this->exec, 15};
     idx_set.add_subset(3, 7);
     idx_set.add_subset(8, 13);
 
@@ -346,7 +341,7 @@ TYPED_TEST(IndexSet, ReturnsBeginOfIndexSet)
 
 TYPED_TEST(IndexSet, ReturnsSpecificElementOfIndexSet)
 {
-    auto idx_set = gko::IndexSet<TypeParam>{55};
+    auto idx_set = gko::IndexSet<TypeParam>{this->exec, 55};
     idx_set.add_subset(3, 7);
     idx_set.add_subset(25, 43);
     ASSERT_EQ(*idx_set.at(5), 5);
@@ -357,7 +352,7 @@ TYPED_TEST(IndexSet, ReturnsSpecificElementOfIndexSet)
 
 TYPED_TEST(IndexSet, ReturnsFirstIntervalOfSet)
 {
-    auto idx_set = gko::IndexSet<TypeParam>{15};
+    auto idx_set = gko::IndexSet<TypeParam>{this->exec, 15};
     idx_set.add_subset(3, 7);
     idx_set.add_subset(8, 13);
     auto first_int = idx_set.get_first_interval();
@@ -367,7 +362,7 @@ TYPED_TEST(IndexSet, ReturnsFirstIntervalOfSet)
 
 TYPED_TEST(IndexSet, KnowsIndicesWithinIntervals)
 {
-    auto idx_set = gko::IndexSet<TypeParam>{15};
+    auto idx_set = gko::IndexSet<TypeParam>{this->exec, 15};
     idx_set.add_subset(2, 5);
     idx_set.add_subset(6, 8);
     idx_set.add_subset(10, 14);
@@ -383,7 +378,7 @@ TYPED_TEST(IndexSet, KnowsIndicesWithinIntervals)
 
 TYPED_TEST(IndexSet, CanIncrementBetweenIntervals)
 {
-    auto idx_set = gko::IndexSet<TypeParam>{15};
+    auto idx_set = gko::IndexSet<TypeParam>{this->exec, 15};
     idx_set.add_subset(3, 7);
     idx_set.add_subset(8, 14);
     auto first_int = idx_set.get_first_interval();

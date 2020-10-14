@@ -872,7 +872,7 @@ protected:
         size_type num_nonzeros = {},
         std::shared_ptr<strategy_type> strategy = std::make_shared<sparselib>())
         : EnableLinOp<Csr>(exec, size, size),
-          index_set_(size[0] + 1),
+          index_set_(exec, size[0] + 1),
           values_(exec, num_nonzeros),
           col_idxs_(exec, num_nonzeros),
           row_ptrs_(exec, size[0] + 1),
@@ -927,7 +927,7 @@ protected:
         ValuesArray &&values, ColIdxsArray &&col_idxs, RowPtrsArray &&row_ptrs,
         std::shared_ptr<strategy_type> strategy = std::make_shared<sparselib>())
         : EnableLinOp<Csr>(exec, size, size),
-          index_set_(size[0] + 1),
+          index_set_(exec, size[0] + 1),
           values_{exec, std::forward<ValuesArray>(values)},
           col_idxs_{exec, std::forward<ColIdxsArray>(col_idxs)},
           row_ptrs_{exec, std::forward<RowPtrsArray>(row_ptrs)},
@@ -1027,7 +1027,7 @@ protected:
         updated_row_ptrs.set_executor(exec);
         auto max_index_size = row_set.get_largest_element_in_set();
         auto index_set =
-            gko::IndexSet<itype>{(max_index_size + 1) * global_size[1]};
+            gko::IndexSet<itype>{exec, (max_index_size + 1) * global_size[1]};
         for (auto i = 0; i < num_rows; ++i) {
             index_set.add_subset(row_start.get_const_data()[i] -
                                      num_nnz_per_row.get_const_data()[i],

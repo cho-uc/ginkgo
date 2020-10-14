@@ -254,7 +254,7 @@ TYPED_TEST(DistributedCoo, CanDistributeData)
     value_type *local_values;
     index_type *local_col_idxs;
     index_type *local_row_idxs;
-    gko::IndexSet<size_type> row_dist{6};
+    gko::IndexSet<size_type> row_dist{this->mpi_exec, 6};
     size_type num_rows;
     if (this->rank == 0) {
         // clang-format off
@@ -342,7 +342,7 @@ TYPED_TEST(DistributedCoo, CanDistributeDataNonContiguously)
     value_type *local_values;
     index_type *local_col_idxs;
     index_type *local_row_idxs;
-    gko::IndexSet<size_type> row_dist{6};
+    gko::IndexSet<size_type> row_dist{this->mpi_exec, 6};
     size_type num_rows;
     if (this->rank == 0) {
         // clang-format off
@@ -436,7 +436,7 @@ TYPED_TEST(DistributedCoo, AppliesToDense)
     value_type *local_values;
     index_type *local_col_idxs;
     index_type *local_row_idxs;
-    gko::IndexSet<size_type> row_dist{6};
+    gko::IndexSet<size_type> row_dist{this->mpi_exec, 6};
     size_type num_rows;
     value_type *vec_data;
     vec_data = new value_type[5]{-3.0, 3.0, -5.0, 5.0, 1.0};

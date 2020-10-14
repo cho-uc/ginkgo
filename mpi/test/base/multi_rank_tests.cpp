@@ -106,7 +106,7 @@ TYPED_TEST(MultiRankDistribute, CanSimpleDistributeArray)
     gko::Array<value_type> m{this->mpi_exec};
     gko::Array<value_type> orig_array{sub_exec};
     gko::Array<value_type> lm{sub_exec};
-    gko::IndexSet<gko::int32> index_set{40};
+    gko::IndexSet<gko::int32> index_set{this->mpi_exec, 40};
     this->mpi_exec->set_root_rank(0);
     if (this->rank == 0) {
         data = new value_type[28]{
@@ -164,7 +164,7 @@ TYPED_TEST(MultiRankDistribute, CanDistributeArrayNonContiguous)
     gko::Array<value_type> m{this->mpi_exec};
     gko::Array<value_type> orig_array{sub_exec};
     gko::Array<value_type> lm{sub_exec};
-    gko::IndexSet<gko::int32> index_set{40};
+    gko::IndexSet<gko::int32> index_set{this->mpi_exec, 40};
     this->mpi_exec->set_root_rank(0);
     if (this->rank == 0) {
         data = new value_type[28]{
