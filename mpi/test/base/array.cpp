@@ -55,7 +55,6 @@ template <typename T>
 class DistributedArray : public ::testing::Test {
 protected:
     using value_type = T;
-    using Mtx = gko::matrix::Dense<value_type>;
     DistributedArray() : mpi_exec(nullptr) {}
 
     void SetUp()
@@ -69,10 +68,6 @@ protected:
         num_ranks = mpi_exec->get_num_ranks(comm);
         rank = mpi_exec->get_my_rank(comm);
         ASSERT_GT(num_ranks, 1);
-        mtx1 = gko::initialize<Mtx>({I<T>({1.0, -1.0}), I<T>({-2.0, 2.0})},
-                                    sub_exec);
-        mtx2 =
-            gko::initialize<Mtx>({{1.0, 2.0, 3.0}, {0.5, 1.5, 2.5}}, sub_exec);
     }
 
     void TearDown()
@@ -102,8 +97,6 @@ protected:
     std::shared_ptr<gko::MpiExecutor> mpi_exec;
     std::shared_ptr<const gko::Executor> exec;
     std::shared_ptr<const gko::Executor> sub_exec;
-    std::unique_ptr<Mtx> mtx1;
-    std::unique_ptr<Mtx> mtx2;
     int rank;
     int num_ranks;
 };

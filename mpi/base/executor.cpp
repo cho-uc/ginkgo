@@ -504,7 +504,7 @@ void MpiExecutor::scatter(const SendType *send_buffer, const int *send_counts,
 
 #define GKO_DECLARE_WINDOW(ValueType) class mpi::window<ValueType>
 
-GKO_INSTANTIATE_FOR_EACH_SEPARATE_VALUE_AND_INDEX_TYPE(GKO_DECLARE_WINDOW);
+GKO_INSTANTIATE_FOR_EACH_POD_TYPE(GKO_DECLARE_WINDOW);
 
 
 #define GKO_DECLARE_SEND(SendType)                                            \
@@ -512,7 +512,7 @@ GKO_INSTANTIATE_FOR_EACH_SEPARATE_VALUE_AND_INDEX_TYPE(GKO_DECLARE_WINDOW);
                            const int destination_rank, const int send_tag,    \
                            MPI_Request *req) const
 
-GKO_INSTANTIATE_FOR_EACH_SEPARATE_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SEND);
+GKO_INSTANTIATE_FOR_EACH_POD_TYPE(GKO_DECLARE_SEND);
 
 
 #define GKO_DECLARE_RECV(RecvType)                                      \
@@ -520,7 +520,7 @@ GKO_INSTANTIATE_FOR_EACH_SEPARATE_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SEND);
                            const int source_rank, const int recv_tag,   \
                            MPI_Request *req) const
 
-GKO_INSTANTIATE_FOR_EACH_SEPARATE_VALUE_AND_INDEX_TYPE(GKO_DECLARE_RECV);
+GKO_INSTANTIATE_FOR_EACH_POD_TYPE(GKO_DECLARE_RECV);
 
 
 #define GKO_DECLARE_PUT(PutType)                               \
@@ -529,7 +529,7 @@ GKO_INSTANTIATE_FOR_EACH_SEPARATE_VALUE_AND_INDEX_TYPE(GKO_DECLARE_RECV);
         const int target_rank, const unsigned int target_disp, \
         const int target_count, MPI_Win window, MPI_Request *req) const
 
-GKO_INSTANTIATE_FOR_EACH_SEPARATE_VALUE_AND_INDEX_TYPE(GKO_DECLARE_PUT);
+GKO_INSTANTIATE_FOR_EACH_POD_TYPE(GKO_DECLARE_PUT);
 
 
 #define GKO_DECLARE_GET(GetType)                                               \
@@ -538,14 +538,14 @@ GKO_INSTANTIATE_FOR_EACH_SEPARATE_VALUE_AND_INDEX_TYPE(GKO_DECLARE_PUT);
         const unsigned int target_disp, const int target_count,                \
         MPI_Win window, MPI_Request *req) const
 
-GKO_INSTANTIATE_FOR_EACH_SEPARATE_VALUE_AND_INDEX_TYPE(GKO_DECLARE_GET);
+GKO_INSTANTIATE_FOR_EACH_POD_TYPE(GKO_DECLARE_GET);
 
 
 #define GKO_DECLARE_BCAST(BroadcastType)                          \
     void MpiExecutor::broadcast(BroadcastType *buffer, int count, \
                                 int root_rank) const
 
-GKO_INSTANTIATE_FOR_EACH_SEPARATE_VALUE_AND_INDEX_TYPE(GKO_DECLARE_BCAST);
+GKO_INSTANTIATE_FOR_EACH_POD_TYPE(GKO_DECLARE_BCAST);
 
 
 #define GKO_DECLARE_REDUCE(ReduceType)                                     \
@@ -553,7 +553,7 @@ GKO_INSTANTIATE_FOR_EACH_SEPARATE_VALUE_AND_INDEX_TYPE(GKO_DECLARE_BCAST);
         const ReduceType *send_buffer, ReduceType *recv_buffer, int count, \
         mpi::op_type operation, int root_rank, MPI_Request *req) const
 
-GKO_INSTANTIATE_FOR_EACH_SEPARATE_VALUE_AND_INDEX_TYPE(GKO_DECLARE_REDUCE);
+GKO_INSTANTIATE_FOR_EACH_POD_TYPE(GKO_DECLARE_REDUCE);
 
 
 #define GKO_DECLARE_ALLREDUCE(ReduceType)                                  \
@@ -561,7 +561,7 @@ GKO_INSTANTIATE_FOR_EACH_SEPARATE_VALUE_AND_INDEX_TYPE(GKO_DECLARE_REDUCE);
         const ReduceType *send_buffer, ReduceType *recv_buffer, int count, \
         mpi::op_type operation, MPI_Request *req) const
 
-GKO_INSTANTIATE_FOR_EACH_SEPARATE_VALUE_AND_INDEX_TYPE(GKO_DECLARE_ALLREDUCE);
+GKO_INSTANTIATE_FOR_EACH_POD_TYPE(GKO_DECLARE_ALLREDUCE);
 
 
 #define GKO_DECLARE_GATHER1(SendType, RecvType)                           \

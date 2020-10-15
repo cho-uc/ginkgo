@@ -547,13 +547,14 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
  *                Should take two arguments, which are replaced by the
  *                value and index types.
  */
-#define GKO_INSTANTIATE_FOR_EACH_SEPARATE_VALUE_AND_INDEX_TYPE(_macro) \
-    template _macro(float);                                            \
-    template _macro(double);                                           \
-    template _macro(std::complex<float>);                              \
-    template _macro(std::complex<double>);                             \
-    template _macro(size_type);                                        \
-    template _macro(int32);                                            \
+#define GKO_INSTANTIATE_FOR_EACH_POD_TYPE(_macro) \
+    template _macro(float);                       \
+    template _macro(double);                      \
+    template _macro(std::complex<float>);         \
+    template _macro(std::complex<double>);        \
+    template _macro(size_type);                   \
+    template _macro(bool);                        \
+    template _macro(int32);                       \
     template _macro(int64)
 
 

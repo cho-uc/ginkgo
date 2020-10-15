@@ -1467,34 +1467,35 @@ public:
     template <typename SendType, typename RecvType>
     void gather(const SendType *send_buffer, const int send_count,
                 RecvType *recv_buffer, const int *recv_counts,
-                const int *displacements, int root_rank) const;
+                const int *displacements, int root_rank = 0) const;
 
     // MPI_Scatter
     template <typename SendType, typename RecvType>
     void scatter(const SendType *send_buffer, const int send_count,
                  RecvType *recv_buffer, const int recv_count,
-                 int root_rank) const;
+                 int root_rank = 0) const;
 
     // MPI_Scatterv
     template <typename SendType, typename RecvType>
     void scatter(const SendType *send_buffer, const int *send_counts,
                  const int *displacements, RecvType *recv_buffer,
-                 const int recv_count, int root_rank) const;
+                 const int recv_count, int root_rank = 0) const;
 
     // MPI_Bcast
     template <typename BroadcastType>
-    void broadcast(BroadcastType *buffer, int count, int root_rank) const;
+    void broadcast(BroadcastType *buffer, int count = 1,
+                   int root_rank = 0) const;
 
     // MPI_Reduce
     template <typename ReduceType>
     void reduce(const ReduceType *send_buffer, ReduceType *recv_buffer,
-                int count, mpi::op_type op_enum, int root_rank,
-                MPI_Request *req = nullptr) const;
+                int count = 1, mpi::op_type op_enum = mpi::op_type::sum,
+                int root_rank = 0, MPI_Request *req = nullptr) const;
 
     // MPI_Allreduce
     template <typename ReduceType>
     void all_reduce(const ReduceType *send_buffer, ReduceType *recv_buffer,
-                    int count, mpi::op_type op_enum,
+                    int count = 1, mpi::op_type op_enum = mpi::op_type::sum,
                     MPI_Request *req = nullptr) const;
 
 protected:
