@@ -192,26 +192,6 @@ constexpr size_type byte_size = CHAR_BIT;
 
 
 /**
- * Value for an invalid index.
- */
-constexpr int invalid_int = static_cast<int>(-1);
-
-
-/**
- * Value for an invalid unsigned int.
- */
-const unsigned int invalid_unsigned_int =
-    std::numeric_limits<unsigned int>::max();
-
-
-/**
- * Value for an invalid index.
- */
-constexpr gko::size_type invalid_size_type =
-    std::numeric_limits<gko::size_type>::max();
-
-
-/**
  * This class is used to encode storage precisions of low precision algorithms.
  *
  * Some algorithms in Ginkgo can improve their performance by storing parts of
@@ -618,6 +598,40 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
     template _macro(long int, size_type);                       \
     template _macro(long int, int);                             \
     template _macro(long int, long int)
+
+
+/**
+ * Value for an invalid int.
+ */
+template <typename IndexType>
+inline const IndexType invalid_index_type()
+{
+    return static_cast<IndexType>(-1);
+}
+
+#define GKO_DECLARE_INVALID_TYPES(_itype) const _itype invalid_index_type()
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_INVALID_TYPES);
+
+
+/**
+ * Value for an invalid unsigned int.
+ */
+template <>
+inline const unsigned int invalid_index_type()
+{
+    return std::numeric_limits<unsigned int>::max();
+}
+
+
+/**
+ * Value for an invalid index.
+ */
+template <>
+inline const gko::size_type invalid_index_type()
+{
+    return std::numeric_limits<gko::size_type>::max();
+}
 
 
 }  // namespace gko

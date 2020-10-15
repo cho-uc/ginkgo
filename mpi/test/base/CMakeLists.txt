@@ -1,4 +1,5 @@
 ginkgo_create_mpi_test(array 2)
+ginkgo_create_mpi_test(index_set 4)
 ginkgo_create_mpi_test(communicator 16)
 ginkgo_create_mpi_test(exception_helpers 2)
 ginkgo_create_mpi_test(executor 4)

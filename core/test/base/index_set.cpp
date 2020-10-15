@@ -221,6 +221,14 @@ TYPED_TEST(IndexSet, CanAddRangeOfIndicesWithIterators)
 }
 
 
+TYPED_TEST(IndexSet, IsCompleteForSingleExecutor)
+{
+    auto idx_set = gko::IndexSet<TypeParam>{this->exec, 10};
+    idx_set.add_subset(0, 3);
+    ASSERT_TRUE(idx_set.is_ascending_and_one_to_one());
+}
+
+
 TYPED_TEST(IndexSet, KnowsItsElements)
 {
     auto idx_set = gko::IndexSet<TypeParam>{this->exec, 10};
@@ -346,7 +354,7 @@ TYPED_TEST(IndexSet, ReturnsSpecificElementOfIndexSet)
     idx_set.add_subset(25, 43);
     ASSERT_EQ(*idx_set.at(5), 5);
     ASSERT_EQ(*idx_set.at(24), 25);
-    ASSERT_THROW(*idx_set.at(44), gko::ConditionUnsatisfied);
+    ASSERT_THROW(*idx_set.at(65), gko::ConditionUnsatisfied);
 }
 
 

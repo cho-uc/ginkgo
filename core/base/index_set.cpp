@@ -67,7 +67,7 @@ IndexSet<IndexType>::IndexSet(IndexSet<IndexType> &&other) noexcept
     other.subsets_.clear();
     other.is_merged_ = true;
     other.index_space_size_ = 0;
-    other.largest_subset_ = invalid_unsigned_int;
+    other.largest_subset_ = invalid_index_type<unsigned int>();
     other.exec_ = nullptr;
 
     merge();
@@ -330,61 +330,68 @@ bool IndexSet<IndexType>::is_contiguous() const
 
 
 template <typename IndexType>
-bool IndexSet<IndexType>::is_ascending_and_one_to_one(
-    const gko::Executor *exec) const GKO_NOT_IMPLEMENTED;
-// {
-//     // If the sum of local elements does not add up to the total size,
-//     // the IndexSet can't be complete.
-//     const size_type n_global_elements =
-//         Utilities::MPI::sum(n_elements(), communicator);
-//     if (n_global_elements != size()) return false;
+bool IndexSet<IndexType>::is_ascending_and_one_to_one() const
+{
+    auto mpi_exec =
+        dynamic_cast<const gko::MpiExecutor *>(this->get_executor().get());
+    if (mpi_exec) {
+        // If the sum of local elements does not add up to the total size,
+        // the IndexSet can't be complete.
+        size_type global_count = 0;
+        const size_type local_count = this->get_num_elems();
 
-//     if (n_global_elements == 0) return true;
+        mpi_exec->all_reduce(&local_count, &global_count);
+        if (global_count != this->get_size()) return false;
 
-// #ifdef MPI
-//     // Non-contiguous IndexSets can't be linear.
-//     const bool all_contiguous =
-//         (Utilities::MPI::min(is_contiguous() ? 1 : 0, communicator) == 1);
-//     if (!all_contiguous) return false;
+        if (global_count == 0) return true;
 
-//     bool is_globally_ascending = true;
-//     // we know that there is only one interval
-//     types::global_dof_index first_local_dof =
-//         (n_elements() > 0) ? *(begin_intervals()->begin())
-//                            : numbers::invalid_dof_index;
+        // Non-contiguous IndexSets can't be linear.
+        const int local_contiguous = this->is_contiguous() ? 1 : 0;
+        int all_contiguous = false;
+        mpi_exec->all_reduce(&local_contiguous, &all_contiguous, 1,
+                             mpi::op_type::min);
+        if (!all_contiguous) return false;
 
-//     const unsigned int my_rank =
-//     Utilities::MPI::this_mpi_process(communicator); const
-//     std::vector<types::global_dof_index> global_dofs =
-//         Utilities::MPI::gather(communicator, first_local_dof, 0);
+        bool is_globally_ascending = true;
+        // we know that there is only one interval
+        IndexType first_local_dof = (local_count > 0)
+                                        ? *(this->get_first_interval()->begin())
+                                        : invalid_index_type<IndexType>();
 
-//     if (my_rank == 0) {
-//         // find out if the received std::vector is ascending
-//         types::global_dof_index index = 0;
-//         while (global_dofs[index] == numbers::invalid_dof_index) ++index;
-//         types::global_dof_index old_dof = global_dofs[index++];
-//         for (; index < global_dofs.size(); ++index) {
-//             const types::global_dof_index new_dof = global_dofs[index];
-//             if (new_dof != numbers::invalid_dof_index) {
-//                 if (new_dof <= old_dof) {
-//                     is_globally_ascending = false;
-//                     break;
-//                 } else
-//                     old_dof = new_dof;
-//             }
-//         }
-//     }
+        const auto my_rank =
+            mpi_exec->get_my_rank(mpi_exec->get_communicator());
+        const auto num_ranks =
+            mpi_exec->get_num_ranks(mpi_exec->get_communicator());
+        std::vector<IndexType> global_dofs(num_ranks, 0);
+        mpi_exec->gather(&first_local_dof, 1, global_dofs.data(), 1, 0);
 
-//     // now broadcast the result
-//     int is_ascending = is_globally_ascending ? 1 : 0;
-//     int ierr = MPI_Bcast(&is_ascending, 1, MPI_INT, 0, communicator);
-//     AssertThrowMPI(ierr);
+        if (my_rank == 0) {
+            // find out if the received std::vector is ascending
+            IndexType index = 0;
+            while (global_dofs[index] == invalid_index_type<IndexType>())
+                ++index;
+            IndexType old_dof = global_dofs[index++];
+            for (; index < global_dofs.size(); ++index) {
+                const IndexType new_dof = global_dofs[index];
+                if (new_dof != invalid_index_type<IndexType>()) {
+                    if (new_dof <= old_dof) {
+                        is_globally_ascending = false;
+                        break;
+                    } else
+                        old_dof = new_dof;
+                }
+            }
+        }
 
-//     return (is_ascending == 1);
-// #else
-//     return true;
-// #endif  // MPI
-// }
+        // now broadcast the result
+        int is_ascending = is_globally_ascending ? 1 : 0;
+        mpi_exec->broadcast(&is_ascending);
+
+        return (is_ascending == 1);
+    } else {
+        return true;
+    }
+}
 
 
 template <typename IndexType>
@@ -461,7 +468,7 @@ size_type IndexSet<IndexType>::get_local_index(
     GKO_ASSERT_CONDITION(global_index < get_size());
 
     // return immediately if the index set is empty
-    if (is_empty()) return invalid_size_type;
+    if (is_empty()) return invalid_index_type<size_type>();
 
     // check whether the index is in the largest subset. use the result to
     // perform a one-sided binary search afterward
@@ -487,7 +494,7 @@ size_type IndexSet<IndexType>::get_local_index(
 
     // if global_index is not in this set
     if (p == subset_end || p->end_ == global_index || p->begin_ > global_index)
-        return invalid_size_type;
+        return invalid_index_type<size_type>();
 
     GKO_ASSERT_CONDITION(p != subsets_.end());
     GKO_ASSERT_CONDITION(p->begin_ <= global_index);
