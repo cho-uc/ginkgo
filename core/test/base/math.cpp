@@ -183,4 +183,36 @@ TEST(RemoveComplexClass, DoubleComplex)
 }
 
 
+TEST(Zero, WorksWithExplicitType)
+{
+    ASSERT_EQ(gko::zero<std::complex<double>>(), std::complex<double>{});
+}
+
+
+TEST(Zero, WorksWithDeducedType)
+{
+    std::complex<double> value{1.0, 2.0};
+
+    value = gko::zero();
+
+    ASSERT_EQ(value, std::complex<double>{});
+}
+
+
+TEST(One, WorksWithExplicitType)
+{
+    ASSERT_EQ(gko::one<std::complex<double>>(), std::complex<double>{1.0});
+}
+
+
+TEST(One, WorksWithDeducedType)
+{
+    std::complex<double> value{};
+
+    value = gko::one();
+
+    ASSERT_EQ(value, std::complex<double>{1.0});
+}
+
+
 }  // namespace

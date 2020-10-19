@@ -530,6 +530,27 @@ struct type_size_impl<std::complex<T>> {
 };
 
 
+struct one_return_deduction_impl {
+    GKO_ATTRIBUTES one_return_deduction_impl(int) {}
+    template <typename T, typename std::enable_if<
+                              std::is_arithmetic<T>::value>::type * = nullptr>
+    GKO_ATTRIBUTES operator T()
+    {
+        return T(1);
+    }
+};
+
+
+struct zero_return_deduction_impl {
+    template <typename T, typename std::enable_if<
+                              std::is_arithmetic<T>::value>::type * = nullptr>
+    GKO_ATTRIBUTES operator T()
+    {
+        return T{};
+    }
+};
+
+
 }  // namespace detail
 
 
@@ -578,134 +599,12 @@ GKO_INLINE GKO_ATTRIBUTES constexpr int64 ceildiv(int64 num, int64 den)
 }
 
 
-#if defined(__HIPCC__) && GINKGO_HIP_PLATFORM_HCC
-
-
 /**
  * Returns the additive identity for T.
  *
  * @return additive identity for T
  */
-template <typename T>
-GKO_INLINE __host__ constexpr T zero()
-{
-    return T{};
-}
-
-
-/**
- * Returns the additive identity for T.
- *
- * @return additive identity for T
- *
- * @note This version takes an unused reference argument to avoid
- *       complicated calls like `zero<decltype(x)>()`. Instead, it allows
- *       `zero(x)`.
- */
-template <typename T>
-GKO_INLINE __host__ constexpr T zero(const T &)
-{
-    return zero<T>();
-}
-
-
-/**
- * Returns the multiplicative identity for T.
- *
- * @return the multiplicative identity for T
- */
-template <typename T>
-GKO_INLINE __host__ constexpr T one()
-{
-    return T(1);
-}
-
-
-/**
- * Returns the multiplicative identity for T.
- *
- * @return the multiplicative identity for T
- *
- * @note This version takes an unused reference argument to avoid
- *       complicated calls like `one<decltype(x)>()`. Instead, it allows
- *       `one(x)`.
- */
-template <typename T>
-GKO_INLINE __host__ constexpr T one(const T &)
-{
-    return one<T>();
-}
-
-
-/**
- * Returns the additive identity for T.
- *
- * @return additive identity for T
- */
-template <typename T>
-GKO_INLINE __device__ constexpr std::enable_if_t<
-    !std::is_same<T, std::complex<remove_complex<T>>>::value, T>
-zero()
-{
-    return T{};
-}
-
-
-/**
- * Returns the additive identity for T.
- *
- * @return additive identity for T
- *
- * @note This version takes an unused reference argument to avoid
- *       complicated calls like `zero<decltype(x)>()`. Instead, it allows
- *       `zero(x)`.
- */
-template <typename T>
-GKO_INLINE __device__ constexpr T zero(const T &)
-{
-    return zero<T>();
-}
-
-
-/**
- * Returns the multiplicative identity for T.
- *
- * @return the multiplicative identity for T
- */
-template <typename T>
-GKO_INLINE __device__ constexpr std::enable_if_t<
-    !std::is_same<T, std::complex<remove_complex<T>>>::value, T>
-one()
-{
-    return T(1);
-}
-
-
-/**
- * Returns the multiplicative identity for T.
- *
- * @return the multiplicative identity for T
- *
- * @note This version takes an unused reference argument to avoid
- *       complicated calls like `one<decltype(x)>()`. Instead, it allows
- *       `one(x)`.
- */
-template <typename T>
-GKO_INLINE __device__ constexpr T one(const T &)
-{
-    return one<T>();
-}
-
-
-#else
-
-
-/**
- * Returns the additive identity for T.
- *
- * @return additive identity for T
- */
-template <typename T>
+template <typename T = detail::zero_return_deduction_impl>
 GKO_INLINE GKO_ATTRIBUTES constexpr T zero()
 {
     return T{};
@@ -733,7 +632,7 @@ GKO_INLINE GKO_ATTRIBUTES constexpr T zero(const T &)
  *
  * @return the multiplicative identity for T
  */
-template <typename T>
+template <typename T = detail::one_return_deduction_impl>
 GKO_INLINE GKO_ATTRIBUTES constexpr T one()
 {
     return T(1);
@@ -754,12 +653,6 @@ GKO_INLINE GKO_ATTRIBUTES constexpr T one(const T &)
 {
     return one<T>();
 }
-
-
-#endif  // defined(__HIPCC__) && GINKGO_HIP_PLATFORM_HCC
-
-
-#undef GKO_BIND_ZERO_ONE
 
 
 /**

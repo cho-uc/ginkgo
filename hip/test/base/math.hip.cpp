@@ -116,9 +116,20 @@ __global__ void test_complex_is_finite(bool *result)
 }
 
 
-class IsFinite : public ::testing::Test {
+template <typename T>
+__global__ void test_zero_one(bool *result)
+{
+    T val{};
+    val = gko::one();
+    *result = *result && val == T(1);
+    val = gko::zero();
+    *result = *result && val == T(0);
+}
+
+
+class Math : public ::testing::Test {
 protected:
-    IsFinite()
+    Math()
         : ref(gko::ReferenceExecutor::create()),
           hip(gko::HipExecutor::create(0, ref))
     {}
@@ -143,26 +154,51 @@ protected:
         return *result.get_data();
     }
 
+    template <typename T>
+    bool test_zero_one_kernel()
+    {
+        gko::Array<bool> result(hip, 1);
+        hipLaunchKernelGGL(HIP_KERNEL_NAME(test_zero_one<T>), dim3(1), dim3(1),
+                           0, 0, result.get_data());
+        result.set_executor(ref);
+        return *result.get_data();
+    }
+
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<gko::HipExecutor> hip;
 };
 
 
-TEST_F(IsFinite, Float) { ASSERT_TRUE(test_real_is_finite_kernel<float>()); }
+TEST_F(Math, IsFiniteFloat)
+{
+    ASSERT_TRUE(test_real_is_finite_kernel<float>());
+}
 
 
-TEST_F(IsFinite, Double) { ASSERT_TRUE(test_real_is_finite_kernel<double>()); }
+TEST_F(Math, IsFiniteDouble)
+{
+    ASSERT_TRUE(test_real_is_finite_kernel<double>());
+}
 
 
-TEST_F(IsFinite, FloatComplex)
+TEST_F(Math, IsFiniteFloatComplex)
 {
     ASSERT_TRUE(test_complex_is_finite_kernel<thrust::complex<float>>());
 }
 
 
-TEST_F(IsFinite, DoubleComplex)
+TEST_F(Math, IsFiniteDoubleComplex)
 {
     ASSERT_TRUE(test_complex_is_finite_kernel<thrust::complex<double>>());
+}
+
+
+TEST_F(Math, ZeroOneDouble) { ASSERT_TRUE(test_zero_one_kernel<double>()); }
+
+
+TEST_F(Math, ZeroOneDoubleComplex)
+{
+    ASSERT_TRUE(test_zero_one_kernel<thrust::complex<double>>());
 }
 
 
