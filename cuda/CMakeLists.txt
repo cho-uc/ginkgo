@@ -117,7 +117,7 @@ if(CMAKE_CUDA_COMPILER_ID STREQUAL "NVIDIA" AND
     # remove false positive CUDA warnings when calling one<T>() and zero<T>()
     target_compile_options(ginkgo_cuda
         PRIVATE
-            $<$<COMPILE_LANGUAGE:CUDA>:--expt-relaxed-constexpr>)
+            $<$<COMPILE_LANGUAGE:CUDA>:--expt-relaxed-constexpr --expt-extended-lambda>)
 endif()
 
 if (NOT CMAKE_CUDA_HOST_COMPILER AND NOT GINKGO_CUDA_DEFAULT_HOST_COMPILER)

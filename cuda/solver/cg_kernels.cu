@@ -53,10 +53,228 @@ namespace cuda {
 namespace cg {
 
 
-constexpr int default_block_size = 512;
+namespace syn {
+template <typename ValueType>
+struct scalar_t {
+    matrix::Dense<ValueType> *data;
+};
 
+template <typename ValueType>
+struct vector_t {
+    matrix::Dense<ValueType> *data;
+};
 
-#include "common/solver/cg_kernels.hpp.inc"
+template <typename ValueType>
+struct const_scalar_t {
+    const matrix::Dense<ValueType> *data;
+};
+
+template <typename ValueType>
+struct const_vector_t {
+    const matrix::Dense<ValueType> *data;
+};
+
+template <typename ValueType>
+scalar_t<ValueType> scalar(matrix::Dense<ValueType> *mtx)
+{
+    return {mtx};
+}
+
+template <typename ValueType>
+const_scalar_t<ValueType> scalar(const matrix::Dense<ValueType> *mtx)
+{
+    return {mtx};
+}
+
+template <typename ValueType>
+vector_t<ValueType> vector(matrix::Dense<ValueType> *mtx)
+{
+    return {mtx};
+}
+
+template <typename ValueType>
+const_vector_t<ValueType> vector(const matrix::Dense<ValueType> *mtx)
+{
+    return {mtx};
+}
+
+template <typename ValueType>
+struct device_dense {
+    cuda_type<ValueType> *__restrict__ data;
+    size_type stride;
+};
+
+template <typename ValueType>
+device_dense<cuda_type<ValueType>> map_to_device(vector_t<ValueType> mtx)
+{
+    return {as_cuda_type(mtx.data->get_values()), mtx.data->get_stride()};
+}
+
+template <typename ValueType>
+device_dense<cuda_type<const ValueType>> map_to_device(
+    const_vector_t<ValueType> mtx)
+{
+    return {as_cuda_type(mtx.data->get_const_values()), mtx.data->get_stride()};
+}
+
+template <typename ValueType>
+struct device_scalar {
+    ValueType *__restrict__ data;
+};
+
+template <typename ValueType>
+device_scalar<cuda_type<ValueType>> map_to_device(scalar_t<ValueType> mtx)
+{
+    return {as_cuda_type(mtx.data->get_values())};
+}
+
+template <typename ValueType>
+device_scalar<cuda_type<const ValueType>> map_to_device(
+    const_scalar_t<ValueType> mtx)
+{
+    return {as_cuda_type(mtx.data->get_const_values())};
+}
+
+stopping_status *map_to_device(Array<stopping_status> &status)
+{
+    return status.get_data();
+}
+
+template <typename ValueType>
+__device__ ValueType &unpack_on_device(size_type row, size_type col,
+                                       device_dense<ValueType> mtx)
+{
+    return mtx.data[row * mtx.stride + col];
+}
+
+template <typename ValueType>
+__device__ ValueType &unpack_on_device(size_type row, size_type col,
+                                       device_scalar<ValueType> mtx)
+{
+    return mtx.data[col];
+}
+
+__device__ stopping_status &unpack_on_device(size_type row, size_type col,
+                                             stopping_status *status)
+{
+    return status[col];
+}
+
+template <typename Function, typename... Args>
+__global__ void generic_2d_kernel(size_type num_rows, size_type num_cols,
+                                  Function func, Args... args)
+{
+    auto col = threadIdx.x + blockDim.x * blockIdx.x;
+    auto row = threadIdx.y + blockDim.y * blockIdx.y;
+    if (row < num_rows && col < num_cols) {
+        func(unpack_on_device(row, col, args)..., row, col);
+    }
+}
+
+template <typename T>
+struct size_extract_helper {};
+
+template <typename ValueType>
+struct size_extract_helper<vector_t<ValueType>> {
+    static constexpr bool has_size() { return true; }
+    static gko::dim<2> get_size(vector_t<ValueType> v)
+    {
+        return v.data->get_size();
+    }
+    static bool is_compatible(gko::dim<2> size, vector_t<ValueType> v)
+    {
+        return get_size(v) == size;
+    }
+};
+
+template <typename ValueType>
+struct size_extract_helper<const_vector_t<ValueType>> {
+    static constexpr bool has_size() { return true; }
+    static gko::dim<2> get_size(const_vector_t<ValueType> v)
+    {
+        return v.data->get_size();
+    }
+    static bool is_compatible(gko::dim<2> size, const_vector_t<ValueType> v)
+    {
+        return get_size(v) == size;
+    }
+};
+
+template <typename ValueType>
+struct size_extract_helper<scalar_t<ValueType>> {
+    static constexpr bool has_size() { return false; }
+    static gko::dim<2> get_size(scalar_t<ValueType> v)
+    {
+        return v.data->get_size();
+    }
+    static bool is_compatible(gko::dim<2> size, scalar_t<ValueType> v)
+    {
+        return get_size(v)[1] == size[1];
+    }
+};
+
+template <typename ValueType>
+struct size_extract_helper<const_scalar_t<ValueType>> {
+    static constexpr bool has_size() { return false; }
+    static gko::dim<2> get_size(const_scalar_t<ValueType> v)
+    {
+        return v.data->get_size();
+    }
+    static bool is_compatible(gko::dim<2> size, const_scalar_t<ValueType> v)
+    {
+        return get_size(v)[1] == size[1];
+    }
+};
+
+template <>
+struct size_extract_helper<Array<stopping_status>> {
+    static constexpr bool has_size() { return false; }
+    static gko::dim<2> get_size(Array<stopping_status> &status)
+    {
+        return {1, status.get_num_elems()};
+    }
+    static bool is_compatible(gko::dim<2> size, Array<stopping_status> &v)
+    {
+        return get_size(v)[1] == size[1];
+    }
+};
+
+bool all() { return true; }
+
+template <typename Arg, typename... Args>
+bool all(Arg arg, Args... args)
+{
+    return arg && all(args...);
+}
+
+gko::dim<2> find_first_size() { return gko::dim<2>{}; }
+
+template <typename Arg, typename... Args>
+gko::dim<2> find_first_size(Arg arg, Args... args)
+{
+    if (size_extract_helper<Arg>::has_size()) {
+        return size_extract_helper<Arg>::get_size(arg);
+    } else {
+        return find_first_size(args...);
+    }
+}
+
+template <typename Function, typename... Args>
+void dispatch(Function func, Args... args)
+{
+    auto size = find_first_size(args...);
+    constexpr auto x_blocksize = 32;
+    constexpr auto y_blocksize = 32;
+    GKO_ASSERT(all(size_extract_helper<Args>::is_compatible(size, args)...));
+    auto x_blocks = ceildiv(size[1], x_blocksize);
+    auto y_blocks = ceildiv(size[0], y_blocksize);
+    auto blocks = dim3(x_blocks, y_blocks);
+    auto threads = dim3(x_blocksize, y_blocksize);
+    generic_2d_kernel<<<blocks, threads>>>(size[0], size[1], func,
+                                           map_to_device(args)...);
+}
+
+}  // namespace syn
 
 
 template <typename ValueType>
@@ -67,16 +285,22 @@ void initialize(std::shared_ptr<const CudaExecutor> exec,
                 matrix::Dense<ValueType> *rho,
                 Array<stopping_status> *stop_status)
 {
-    const dim3 block_size(default_block_size, 1, 1);
-    const dim3 grid_size(
-        ceildiv(b->get_size()[0] * b->get_stride(), block_size.x), 1, 1);
-
-    initialize_kernel<<<grid_size, block_size, 0, 0>>>(
-        b->get_size()[0], b->get_size()[1], b->get_stride(),
-        as_cuda_type(b->get_const_values()), as_cuda_type(r->get_values()),
-        as_cuda_type(z->get_values()), as_cuda_type(p->get_values()),
-        as_cuda_type(q->get_values()), as_cuda_type(prev_rho->get_values()),
-        as_cuda_type(rho->get_values()), as_cuda_type(stop_status->get_data()));
+    using syn::scalar;
+    using syn::vector;
+    syn::dispatch(
+        [] __device__(auto &b, auto &r, auto &z, auto &p, auto &q,
+                      auto &prev_rho, auto &rho, auto &stop_status,
+                      size_type row, size_type col) {
+            if (row == 0) {
+                rho = zero();
+                prev_rho = one();
+                stop_status.reset();
+            }
+            r = b;
+            z = p = q = zero();
+        },
+        vector(b), vector(r), vector(z), vector(p), vector(q), scalar(prev_rho),
+        scalar(rho), *stop_status);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG_INITIALIZE_KERNEL);
@@ -89,16 +313,17 @@ void step_1(std::shared_ptr<const CudaExecutor> exec,
             const matrix::Dense<ValueType> *prev_rho,
             const Array<stopping_status> *stop_status)
 {
-    const dim3 block_size(default_block_size, 1, 1);
-    const dim3 grid_size(
-        ceildiv(p->get_size()[0] * p->get_stride(), block_size.x), 1, 1);
-
-    step_1_kernel<<<grid_size, block_size, 0, 0>>>(
-        p->get_size()[0], p->get_size()[1], p->get_stride(),
-        as_cuda_type(p->get_values()), as_cuda_type(z->get_const_values()),
-        as_cuda_type(rho->get_const_values()),
-        as_cuda_type(prev_rho->get_const_values()),
-        as_cuda_type(stop_status->get_const_data()));
+    using syn::scalar;
+    using syn::vector;
+    syn::dispatch(
+        [] __device__(auto &p, auto &z, auto &rho, auto &prev_rho,
+                      auto &stop_status, size_type row, size_type col) {
+            if (!stop_status.has_stopped()) {
+                auto tmp = prev_rho == zero(prev_rho) ? 0 : rho / prev_rho;
+                p = z + tmp * p;
+            }
+        },
+        vector(p), vector(z), scalar(rho), scalar(prev_rho), *stop_status);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG_STEP_1_KERNEL);
@@ -113,18 +338,19 @@ void step_2(std::shared_ptr<const CudaExecutor> exec,
             const matrix::Dense<ValueType> *rho,
             const Array<stopping_status> *stop_status)
 {
-    const dim3 block_size(default_block_size, 1, 1);
-    const dim3 grid_size(
-        ceildiv(p->get_size()[0] * p->get_stride(), block_size.x), 1, 1);
-
-    step_2_kernel<<<grid_size, block_size, 0, 0>>>(
-        p->get_size()[0], p->get_size()[1], p->get_stride(), x->get_stride(),
-        as_cuda_type(x->get_values()), as_cuda_type(r->get_values()),
-        as_cuda_type(p->get_const_values()),
-        as_cuda_type(q->get_const_values()),
-        as_cuda_type(beta->get_const_values()),
-        as_cuda_type(rho->get_const_values()),
-        as_cuda_type(stop_status->get_const_data()));
+    using syn::scalar;
+    using syn::vector;
+    syn::dispatch(
+        [] __device__(auto &x, auto &r, auto &p, auto &q, auto &beta, auto &rho,
+                      auto &stop_status, size_type row, size_type col) {
+            if (!stop_status.has_stopped()) {
+                auto tmp = beta == zero(beta) ? zero(beta) : rho / beta;
+                x += tmp * p;
+                r -= tmp * q;
+            }
+        },
+        vector(x), vector(r), vector(p), vector(q), scalar(beta), scalar(rho),
+        *stop_status);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG_STEP_2_KERNEL);
