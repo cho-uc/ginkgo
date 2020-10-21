@@ -115,7 +115,7 @@ __global__ void test_zero_one(bool *result)
 {
     T val{};
     val = gko::one();
-    *result = *result && val == T(1);
+    *result = val == T(1);
     val = gko::zero();
     *result = *result && val == T(0);
 }
