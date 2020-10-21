@@ -97,7 +97,9 @@ protected:
         stop_status = std::unique_ptr<gko::Array<gko::stopping_status>>(
             new gko::Array<gko::stopping_status>(ref, n));
         for (size_t i = 0; i < stop_status->get_num_elems(); ++i) {
-            stop_status->get_data()[i].reset();
+            // fill with non-default data
+            stop_status->get_data()[i].stop(0);
+            stop_status->get_data()[i].converge(1);
         }
 
         d_b = Mtx::create(cuda);

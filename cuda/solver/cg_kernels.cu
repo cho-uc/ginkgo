@@ -135,9 +135,14 @@ device_scalar<cuda_type<const ValueType>> map_to_device(
     return {as_cuda_type(mtx.data->get_const_values())};
 }
 
-stopping_status *map_to_device(Array<stopping_status> &status)
+stopping_status *map_to_device(Array<stopping_status> *status)
 {
-    return status.get_data();
+    return status->get_data();
+}
+
+const stopping_status *map_to_device(const Array<stopping_status> *status)
+{
+    return status->get_const_data();
 }
 
 template <typename ValueType>
@@ -156,6 +161,12 @@ __device__ ValueType &unpack_on_device(size_type row, size_type col,
 
 __device__ stopping_status &unpack_on_device(size_type row, size_type col,
                                              stopping_status *status)
+{
+    return status[col];
+}
+
+__device__ const stopping_status &unpack_on_device(
+    size_type row, size_type col, const stopping_status *status)
 {
     return status[col];
 }
@@ -226,14 +237,27 @@ struct size_extract_helper<const_scalar_t<ValueType>> {
     }
 };
 
-template <>
-struct size_extract_helper<Array<stopping_status>> {
+template <typename ValueType>
+struct size_extract_helper<Array<ValueType> *> {
     static constexpr bool has_size() { return false; }
-    static gko::dim<2> get_size(Array<stopping_status> &status)
+    static gko::dim<2> get_size(Array<ValueType> *status)
     {
-        return {1, status.get_num_elems()};
+        return {1, status->get_num_elems()};
     }
-    static bool is_compatible(gko::dim<2> size, Array<stopping_status> &v)
+    static bool is_compatible(gko::dim<2> size, Array<ValueType> *v)
+    {
+        return get_size(v)[1] == size[1];
+    }
+};
+
+template <typename ValueType>
+struct size_extract_helper<const Array<ValueType> *> {
+    static constexpr bool has_size() { return false; }
+    static gko::dim<2> get_size(const Array<ValueType> *status)
+    {
+        return {1, status->get_num_elems()};
+    }
+    static bool is_compatible(gko::dim<2> size, const Array<ValueType> *v)
     {
         return get_size(v)[1] == size[1];
     }
@@ -300,7 +324,7 @@ void initialize(std::shared_ptr<const CudaExecutor> exec,
             z = p = q = zero();
         },
         vector(b), vector(r), vector(z), vector(p), vector(q), scalar(prev_rho),
-        scalar(rho), *stop_status);
+        scalar(rho), stop_status);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG_INITIALIZE_KERNEL);
@@ -323,7 +347,7 @@ void step_1(std::shared_ptr<const CudaExecutor> exec,
                 p = z + tmp * p;
             }
         },
-        vector(p), vector(z), scalar(rho), scalar(prev_rho), *stop_status);
+        vector(p), vector(z), scalar(rho), scalar(prev_rho), stop_status);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG_STEP_1_KERNEL);
@@ -350,7 +374,7 @@ void step_2(std::shared_ptr<const CudaExecutor> exec,
             }
         },
         vector(x), vector(r), vector(p), vector(q), scalar(beta), scalar(rho),
-        *stop_status);
+        stop_status);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG_STEP_2_KERNEL);
