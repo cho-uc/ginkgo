@@ -66,6 +66,9 @@ endif()
 ginkgo_default_includes(ginkgo)
 ginkgo_install_library(ginkgo core)
 
+find_package(MPI REQUIRED)
+target_link_libraries(ginkgo PUBLIC MPI::MPI_CXX)
+
 if (GINKGO_CHECK_CIRCULAR_DEPS)
     ginkgo_check_headers(ginkgo)
 endif()

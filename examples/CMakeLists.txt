@@ -20,6 +20,7 @@ set(EXAMPLES_LIST
     ${EXAMPLES_EXEC_LIST}
     custom-matrix-format
     custom-stopping-criterion
+    distributed-spmv
     ginkgo-overhead
     minimal-cuda-solver
     papi-logging
