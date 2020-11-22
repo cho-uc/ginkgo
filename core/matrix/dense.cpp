@@ -67,7 +67,10 @@ GKO_REGISTER_OPERATION(scale, dense::scale);
 GKO_REGISTER_OPERATION(add_scaled, dense::add_scaled);
 GKO_REGISTER_OPERATION(add_scaled_diag, dense::add_scaled_diag);
 GKO_REGISTER_OPERATION(compute_dot, dense::compute_dot);
+GKO_REGISTER_OPERATION(compute_conj_dot, dense::compute_conj_dot);
 GKO_REGISTER_OPERATION(compute_norm2, dense::compute_norm2);
+GKO_REGISTER_OPERATION(compute_norm2_sqr, dense::compute_norm2_sqr);
+GKO_REGISTER_OPERATION(compute_sqrt, dense::compute_sqrt);
 GKO_REGISTER_OPERATION(count_nonzeros, dense::count_nonzeros);
 GKO_REGISTER_OPERATION(calculate_max_nnz_per_row,
                        dense::calculate_max_nnz_per_row);
@@ -293,8 +296,32 @@ void Dense<ValueType>::compute_dot_impl(const LinOp *b, LinOp *result) const
     GKO_ASSERT_EQUAL_DIMENSIONS(this, b);
     GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
     auto exec = this->get_executor();
-    exec->run(dense::make_compute_dot(this, as<Dense<ValueType>>(b),
-                                      as<Dense<ValueType>>(result)));
+    auto mpi_exec = dynamic_cast<const MpiExecutor *>(exec.get());
+    auto dense_b = as<Dense<ValueType>>(b);
+    auto dense_res = as<Dense<ValueType>>(result);
+    exec->run(dense::make_compute_dot(this, dense_b, dense_res));
+    if (mpi_exec) {
+        mpi_exec->get_local()->synchronize();
+        mpi_exec->allreduce(dense_res->get_values(), this->get_size()[1]);
+    }
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::compute_conj_dot_impl(const LinOp *b,
+                                             LinOp *result) const
+{
+    GKO_ASSERT_EQUAL_DIMENSIONS(this, b);
+    GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
+    auto exec = this->get_executor();
+    auto mpi_exec = dynamic_cast<const MpiExecutor *>(exec.get());
+    auto dense_b = as<Dense<ValueType>>(b);
+    auto dense_res = as<Dense<ValueType>>(result);
+    exec->run(dense::make_compute_conj_dot(this, dense_b, dense_res));
+    if (mpi_exec) {
+        mpi_exec->get_local()->synchronize();
+        mpi_exec->allreduce(dense_res->get_values(), this->get_size()[1]);
+    }
 }
 
 
@@ -304,8 +331,16 @@ void Dense<ValueType>::compute_norm2_impl(LinOp *result) const
     using NormVector = Dense<remove_complex<ValueType>>;
     GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
     auto exec = this->get_executor();
-    exec->run(dense::make_compute_norm2(as<Dense<ValueType>>(this),
-                                        as<NormVector>(result)));
+    auto mpi_exec = dynamic_cast<const MpiExecutor *>(exec.get());
+    auto dense_res = as<NormVector>(result);
+    if (mpi_exec) {
+        exec->run(dense::make_compute_norm2_sqr(this, dense_res));
+        mpi_exec->get_local()->synchronize();
+        mpi_exec->allreduce(dense_res->get_values(), this->get_size()[1]);
+        exec->run(dense::make_compute_sqrt(dense_res));
+    } else {
+        exec->run(dense::make_compute_norm2(this, dense_res));
+    }
 }
 
 

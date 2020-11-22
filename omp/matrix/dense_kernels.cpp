@@ -205,12 +205,33 @@ void compute_dot(std::shared_ptr<const OmpExecutor> exec,
 #pragma omp parallel for
     for (size_type j = 0; j < x->get_size()[1]; ++j) {
         for (size_type i = 0; i < x->get_size()[0]; ++i) {
-            result->at(0, j) += conj(x->at(i, j)) * y->at(i, j);
+            result->at(0, j) += x->at(i, j) * y->at(i, j);
         }
     }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_DOT_KERNEL);
+
+
+template <typename ValueType>
+void compute_conj_dot(std::shared_ptr<const OmpExecutor> exec,
+                      const matrix::Dense<ValueType> *x,
+                      const matrix::Dense<ValueType> *y,
+                      matrix::Dense<ValueType> *result)
+{
+#pragma omp parallel for
+    for (size_type j = 0; j < x->get_size()[1]; ++j) {
+        result->at(0, j) = zero<ValueType>();
+    }
+#pragma omp parallel for
+    for (size_type j = 0; j < x->get_size()[1]; ++j) {
+        for (size_type i = 0; i < x->get_size()[0]; ++i) {
+            result->at(0, j) += x->at(i, j) * conj(y->at(i, j));
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_CONJ_DOT_KERNEL);
 
 
 template <typename ValueType>
@@ -236,6 +257,43 @@ void compute_norm2(std::shared_ptr<const OmpExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_NORM2_KERNEL);
+
+
+template <typename ValueType>
+void compute_norm2_sqr(std::shared_ptr<const OmpExecutor> exec,
+                       const matrix::Dense<ValueType> *x,
+                       matrix::Dense<remove_complex<ValueType>> *result)
+{
+    using norm_type = remove_complex<ValueType>;
+#pragma omp parallel for
+    for (size_type j = 0; j < x->get_size()[1]; ++j) {
+        result->at(0, j) = zero<norm_type>();
+    }
+#pragma omp parallel for
+    for (size_type j = 0; j < x->get_size()[1]; ++j) {
+        for (size_type i = 0; i < x->get_size()[0]; ++i) {
+            result->at(0, j) += squared_norm(x->at(i, j));
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_NORM2_SQR_KERNEL);
+
+
+template <typename ValueType>
+void compute_sqrt(std::shared_ptr<const OmpExecutor> exec,
+                  matrix::Dense<ValueType> *data)
+{
+#pragma omp parallel for
+    for (size_type i = 0; i < data->get_size()[0]; ++i) {
+        for (size_type j = 0; j < data->get_size()[1]; ++j) {
+            data->at(i, j) = sqrt(data->at(i, j));
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(
+    GKO_DECLARE_DENSE_COMPUTE_SQRT_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
