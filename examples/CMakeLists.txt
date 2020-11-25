@@ -10,6 +10,7 @@ set(EXAMPLES_EXEC_LIST
     inverse-iteration
     iterative-refinement
     mixed-precision-ir
+    mpi-simple-solver
     nine-pt-stencil-solver
     poisson-solver
     preconditioned-solver

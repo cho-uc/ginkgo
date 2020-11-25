@@ -125,6 +125,33 @@ inline std::unique_ptr<MatrixType> read(StreamType &&is, MatrixArgs &&... args)
  * @tparam MatrixType  a ReadableFromMatrixData LinOp type used to store the
  *                     matrix once it's been read from disk.
  * @tparam StreamType  type of stream used to write the data to
+ * @tparam MatrixArgs  additional argument types passed to MatrixType
+ *                     constructor
+ *
+ * @param is  input stream from which to read the data
+ * @param args  additional arguments passed to MatrixType constructor
+ *
+ * @return A MatrixType LinOp filled with data from filename
+ */
+template <typename MatrixType, typename StreamType, typename DistType,
+          typename... MatrixArgs>
+inline std::unique_ptr<MatrixType> read_dist(StreamType &&is, DistType &&dist,
+                                             MatrixArgs &&... args)
+{
+    auto mtx = MatrixType::create(std::forward<MatrixArgs>(args)...);
+    mtx->read(read_raw<typename MatrixType::value_type,
+                       typename MatrixType::index_type>(is),
+              dist);
+    return mtx;
+}
+
+
+/**
+ * Reads a matrix stored in matrix market format from an input stream.
+ *
+ * @tparam MatrixType  a ReadableFromMatrixData LinOp type used to store the
+ *                     matrix once it's been read from disk.
+ * @tparam StreamType  type of stream used to write the data to
  *
  * @param os  output stream where the data is to be written
  * @param matrix  the matrix to write

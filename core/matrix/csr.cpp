@@ -447,6 +447,7 @@ void Csr<ValueType, IndexType>::read(const mat_data &data,
     }
     tmp->move_to(this);
     this->make_srow();
+    this->set_global_size(data.size);
 }
 
 

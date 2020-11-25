@@ -282,6 +282,13 @@ public:
      */
     virtual bool apply_uses_initial_guess() const { return false; }
 
+    /**
+     * Sets the global size of the operator.
+     *
+     * @param value  the new global size of the operator
+     */
+    void set_global_size(const dim<2> &value) noexcept { global_size_ = value; }
+
 protected:
     /**
      * Creates a linear operator.
@@ -303,13 +310,6 @@ protected:
      * @param value  the new size of the operator
      */
     void set_size(const dim<2> &value) noexcept { size_ = value; }
-
-    /**
-     * Sets the global size of the operator.
-     *
-     * @param value  the new global size of the operator
-     */
-    void set_global_size(const dim<2> &value) noexcept { global_size_ = value; }
 
     /**
      * Implementers of LinOp should override this function instead

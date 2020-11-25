@@ -894,7 +894,7 @@ protected:
           index_set_(index_set),
           values_(exec, num_nonzeros),
           col_idxs_(exec, num_nonzeros),
-          row_ptrs_(exec, size[0] + 1),
+          row_ptrs_(exec, index_set_.get_num_elems() + 1),
           srow_(exec),
           strategy_(std::make_shared<sparselib>())
     {

@@ -147,6 +147,7 @@ void Coo<ValueType, IndexType>::convert_to(
     exec->run(coo::make_convert_to_csr(this, tmp.get()));
     tmp->make_srow();
     tmp->move_to(result);
+    result->set_global_size(this->get_global_size());
 }
 
 
