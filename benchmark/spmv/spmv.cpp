@@ -47,9 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "benchmark/utils/general.hpp"
 #include "benchmark/utils/loggers.hpp"
 #include "benchmark/utils/spmv_common.hpp"
-
-
-using etype = double;
+#include "benchmark/utils/types.hpp"
 
 
 // Command-line arguments
@@ -83,7 +81,7 @@ void apply_spmv(const char *format_name, std::shared_ptr<gko::Executor> exec,
             exec->synchronize();
             system_matrix->apply(lend(b), lend(x_clone));
             exec->synchronize();
-            double max_relative_norm2 =
+            auto max_relative_norm2 =
                 compute_max_relative_norm2(lend(x_clone), lend(answer));
             add_or_set_member(spmv_case[format_name], "max_relative_norm2",
                               max_relative_norm2, allocator);

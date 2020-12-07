@@ -47,10 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "benchmark/utils/loggers.hpp"
 #include "benchmark/utils/preconditioners.hpp"
 #include "benchmark/utils/spmv_common.hpp"
-
-
-// some shortcuts
-using etype = double;
+#include "benchmark/utils/types.hpp"
 
 
 // preconditioner generation and application
