@@ -86,6 +86,8 @@ fi
 
 if [ "${SOLVERS_RHS}" == "random" ]; then
     SOLVERS_RHS_FLAG="--random_rhs=true"
+elif [ "${SOLVERS_RHS}" == "sinus" ]; then
+    SOLVERS_RHS_FLAG="--custom_sinus_rhs=true"
 else
     SOLVERS_RHS_FLAG="--random_rhs=false"
 fi

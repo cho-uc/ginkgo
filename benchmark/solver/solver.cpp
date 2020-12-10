@@ -86,6 +86,10 @@ DEFINE_double(
 DEFINE_bool(random_rhs, false,
             "Use a random vector for the rhs (otherwise use all ones)");
 
+DEFINE_bool(custom_sinus_rhs, false,
+            "Use b = A * (s / |s|) as the RHS with s(i)=sin(i)");
+
+
 DEFINE_bool(random_initial_guess, false,
             "Use a random vector for the initial guess (otherwise use rhs)");
 
@@ -502,20 +506,40 @@ int main(int argc, char *argv[])
                 auto data = gko::read_raw<etype>(mtx_fd);
                 system_matrix = share(formats::matrix_factory.at(
                     test_case["optimal"]["spmv"].GetString())(exec, data));
+                auto vec_size =
+                    gko::dim<2>{system_matrix->get_size()[0], FLAGS_nrhs};
                 if (test_case.HasMember("rhs")) {
                     std::ifstream rhs_fd{test_case["rhs"].GetString()};
                     b = gko::read<Vec>(rhs_fd, exec);
                 } else {
-                    b = create_matrix<etype>(
-                        exec,
-                        gko::dim<2>{system_matrix->get_size()[0], FLAGS_nrhs},
-                        engine, FLAGS_random_rhs);
+                    // TODO: Remove (only present to perform benchmark for
+                    // CB-GMRES)
+                    if (FLAGS_custom_sinus_rhs) {
+                        auto tmp = create_matrix_sin<etype>(exec, vec_size);
+                        auto scalar = gko::matrix::Dense<rc_etype>::create(
+                            exec->get_master(), gko::dim<2>{1, vec_size[1]});
+                        tmp->compute_norm2(scalar.get());
+                        for (gko::size_type i = 0; i < vec_size[1]; ++i) {
+                            scalar->at(0, i) =
+                                gko::one<rc_etype>() / scalar->at(0, i);
+                        }
+                        // normalize sin-vector
+                        if (gko::is_complex_s<etype>::value) {
+                            tmp->scale(scalar->make_complex().get());
+                        } else {
+                            tmp->scale(scalar.get());
+                        }
+                        b = Vec::create(exec, vec_size);
+                        system_matrix->apply(tmp.get(), b.get());
+                    } else {
+                        b = create_matrix<etype>(exec, vec_size, engine,
+                                                 FLAGS_random_rhs);
+                    }
                 }
                 if (FLAGS_random_initial_guess) {
-                    x = create_matrix<etype>(
-                        exec,
-                        gko::dim<2>{system_matrix->get_size()[0], FLAGS_nrhs},
-                        engine);
+                    x = create_matrix<etype>(exec, vec_size, engine);
+                } else if (FLAGS_custom_sinus_rhs) {  // TODO remove!!
+                    x = create_matrix<etype>(exec, vec_size);
                 } else {
                     x = b->clone();
                 }
