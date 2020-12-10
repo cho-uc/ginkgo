@@ -65,6 +65,19 @@ if [ ! "${SOLVERS_RHS}" ]; then
     SOLVERS_RHS="unit"
 fi
 
+if [ ! "${BENCHMARK_PRECISION}" ]; then
+    echo "BENCHMARK_PRECISION not set - assuming \"double\"" 1>&2
+    BENCH_SUFFIX=""
+elif [ "${BENCHMARK_PRECISION}" == "double" ]; then
+    BENCH_SUFFIX=""
+elif [ "${BENCHMARK_PRECISION}" == "single" ]; then
+    BENCH_SUFFIX="_single"
+else
+    echo "BENCHMARK_PRECISION is set to the not supported \"${BENCHMARK_PRECISION}\"." 1>&2
+    echo "Currently supported values: \"double\" and \"single\"" 1>&2
+    exit 1
+fi
+
 if [ "${SOLVERS_RHS}" == "random" ]; then
     SOLVERS_RHS_FLAG="--random_rhs=true"
 else
@@ -127,7 +140,7 @@ keep_latest() {
 compute_matrix_statistics() {
     [ "${DRY_RUN}" == "true" ] && return
     cp "$1" "$1.imd" # make sure we're not loosing the original input
-    ./matrix_statistics/matrix_statistics \
+    ./matrix_statistics/matrix_statistics${BENCH_SUFFIX} \
         --backup="$1.bkp" --double_buffer="$1.bkp2" \
         <"$1.imd" 2>&1 >"$1"
     keep_latest "$1" "$1.bkp" "$1.bkp2" "$1.imd"
@@ -142,10 +155,11 @@ compute_matrix_statistics() {
 run_conversion_benchmarks() {
     [ "${DRY_RUN}" == "true" ] && return
     cp "$1" "$1.imd" # make sure we're not loosing the original input
-    ./conversions/conversions --backup="$1.bkp" --double_buffer="$1.bkp2" \
-                --executor="${EXECUTOR}" --formats="${FORMATS}" \
-                --device_id="${DEVICE_ID}" \
-                <"$1.imd" 2>&1 >"$1"
+    ./conversions/conversions${BENCH_SUFFIX} \
+        --backup="$1.bkp" --double_buffer="$1.bkp2" \
+        --executor="${EXECUTOR}" --formats="${FORMATS}" \
+        --device_id="${DEVICE_ID}" \
+        <"$1.imd" 2>&1 >"$1"
     keep_latest "$1" "$1.bkp" "$1.bkp2" "$1.imd"
 }
 
@@ -158,10 +172,11 @@ run_conversion_benchmarks() {
 run_spmv_benchmarks() {
     [ "${DRY_RUN}" == "true" ] && return
     cp "$1" "$1.imd" # make sure we're not loosing the original input
-    ./spmv/spmv --backup="$1.bkp" --double_buffer="$1.bkp2" \
-                --executor="${EXECUTOR}" --formats="${FORMATS}" \
-                --device_id="${DEVICE_ID}" \
-                <"$1.imd" 2>&1 >"$1"
+    ./spmv/spmv${BENCH_SUFFIX} \
+        --backup="$1.bkp" --double_buffer="$1.bkp2" \
+        --executor="${EXECUTOR}" --formats="${FORMATS}" \
+        --device_id="${DEVICE_ID}" \
+        <"$1.imd" 2>&1 >"$1"
     keep_latest "$1" "$1.bkp" "$1.bkp2" "$1.imd"
 }
 
@@ -174,12 +189,13 @@ run_spmv_benchmarks() {
 run_solver_benchmarks() {
     [ "${DRY_RUN}" == "true" ] && return
     cp "$1" "$1.imd" # make sure we're not loosing the original input
-    ./solver/solver --backup="$1.bkp" --double_buffer="$1.bkp2" \
-                    --executor="${EXECUTOR}" --solvers="${SOLVERS}" \
-                    --preconditioners="${PRECONDS}" \
-                    --max_iters=${SOLVERS_MAX_ITERATIONS} --rel_res_goal=${SOLVERS_PRECISION} \
-                    ${SOLVERS_RHS_FLAG} ${DETAILED_STR} --device_id="${DEVICE_ID}" \
-                    <"$1.imd" 2>&1 >"$1"
+    ./solver/solver${BENCH_SUFFIX} \
+        --backup="$1.bkp" --double_buffer="$1.bkp2" \
+        --executor="${EXECUTOR}" --solvers="${SOLVERS}" \
+        --preconditioners="${PRECONDS}" \
+        --max_iters=${SOLVERS_MAX_ITERATIONS} --rel_res_goal=${SOLVERS_PRECISION} \
+        ${SOLVERS_RHS_FLAG} ${DETAILED_STR} --device_id="${DEVICE_ID}" \
+        <"$1.imd" 2>&1 >"$1"
     keep_latest "$1" "$1.bkp" "$1.bkp2" "$1.imd"
 }
 
@@ -199,7 +215,7 @@ run_preconditioner_benchmarks() {
         for prec in ${PRECISIONS}; do
             echo -e "\t\t running jacobi ($prec) for block size ${bsize}" 1>&2
             cp "$1" "$1.imd" # make sure we're not loosing the original input
-            ./preconditioner/preconditioner \
+            ./preconditioner/preconditioner${BENCH_SUFFIX} \
                 --backup="$1.bkp" --double_buffer="$1.bkp2" \
                 --executor="${EXECUTOR}" --preconditioners="jacobi" \
                 --jacobi_max_block_size="${bsize}" \
