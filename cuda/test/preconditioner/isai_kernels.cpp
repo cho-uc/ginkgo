@@ -284,10 +284,10 @@ TEST_F(Isai, CudaIsaiGenerateExcessLinverseLongIsEquivalentToRef)
 
     gko::kernels::reference::isai::generate_excess_system(
         ref, mtx.get(), inverse.get(), a1.get_const_data(), a2.get_const_data(),
-        excess.get(), e_rhs.get());
+        excess.get(), e_rhs.get(), 0, num_rows);
     gko::kernels::cuda::isai::generate_excess_system(
         cuda, d_mtx.get(), d_inverse.get(), da1.get_const_data(),
-        da2.get_const_data(), dexcess.get(), de_rhs.get());
+        da2.get_const_data(), dexcess.get(), de_rhs.get(), 0, num_rows);
 
     GKO_ASSERT_MTX_EQ_SPARSITY(excess, dexcess);
     GKO_ASSERT_MTX_NEAR(excess, dexcess, 0);
@@ -315,10 +315,10 @@ TEST_F(Isai, CudaIsaiGenerateExcessUinverseLongIsEquivalentToRef)
 
     gko::kernels::reference::isai::generate_excess_system(
         ref, mtx.get(), inverse.get(), a1.get_const_data(), a2.get_const_data(),
-        excess.get(), e_rhs.get());
+        excess.get(), e_rhs.get(), 0, num_rows);
     gko::kernels::cuda::isai::generate_excess_system(
         cuda, d_mtx.get(), d_inverse.get(), da1.get_const_data(),
-        da2.get_const_data(), dexcess.get(), de_rhs.get());
+        da2.get_const_data(), dexcess.get(), de_rhs.get(), 0, num_rows);
 
     GKO_ASSERT_MTX_EQ_SPARSITY(excess, dexcess);
     GKO_ASSERT_MTX_NEAR(excess, dexcess, 0);
@@ -346,10 +346,10 @@ TEST_F(Isai, CudaIsaiGenerateExcessAinverseLongIsEquivalentToRef)
 
     gko::kernels::reference::isai::generate_excess_system(
         ref, mtx.get(), inverse.get(), a1.get_const_data(), a2.get_const_data(),
-        excess.get(), e_rhs.get());
+        excess.get(), e_rhs.get(), 0, num_rows);
     gko::kernels::cuda::isai::generate_excess_system(
         cuda, d_mtx.get(), d_inverse.get(), da1.get_const_data(),
-        da2.get_const_data(), dexcess.get(), de_rhs.get());
+        da2.get_const_data(), dexcess.get(), de_rhs.get(), 0, num_rows);
 
     GKO_ASSERT_MTX_EQ_SPARSITY(excess, dexcess);
     GKO_ASSERT_MTX_NEAR(excess, dexcess, 0);
@@ -375,9 +375,9 @@ TEST_F(Isai, CudaIsaiScatterExcessSolutionLIsEquivalentToRef)
     d_inverse->copy_from(lend(inverse));
 
     gko::kernels::reference::isai::scatter_excess_solution(
-        ref, a1.get_const_data(), e_rhs.get(), inverse.get());
+        ref, a1.get_const_data(), e_rhs.get(), inverse.get(), 0, num_rows);
     gko::kernels::cuda::isai::scatter_excess_solution(
-        cuda, da1.get_const_data(), de_rhs.get(), d_inverse.get());
+        cuda, da1.get_const_data(), de_rhs.get(), d_inverse.get(), 0, num_rows);
 
     GKO_ASSERT_MTX_NEAR(inverse, d_inverse, 0);
     ASSERT_GT(e_dim, 0);
@@ -402,9 +402,9 @@ TEST_F(Isai, CudaIsaiScatterExcessSolutionUIsEquivalentToRef)
     d_inverse->copy_from(lend(inverse));
 
     gko::kernels::reference::isai::scatter_excess_solution(
-        ref, a1.get_const_data(), e_rhs.get(), inverse.get());
+        ref, a1.get_const_data(), e_rhs.get(), inverse.get(), 0, num_rows);
     gko::kernels::cuda::isai::scatter_excess_solution(
-        cuda, da1.get_const_data(), de_rhs.get(), d_inverse.get());
+        cuda, da1.get_const_data(), de_rhs.get(), d_inverse.get(), 0, num_rows);
 
     GKO_ASSERT_MTX_NEAR(inverse, d_inverse, 0);
     ASSERT_GT(e_dim, 0);
@@ -429,9 +429,9 @@ TEST_F(Isai, CudaIsaiScatterExcessSolutionAIsEquivalentToRef)
     d_inverse->copy_from(lend(inverse));
 
     gko::kernels::reference::isai::scatter_excess_solution(
-        ref, a1.get_const_data(), e_rhs.get(), inverse.get());
+        ref, a1.get_const_data(), e_rhs.get(), inverse.get(), 0, num_rows);
     gko::kernels::cuda::isai::scatter_excess_solution(
-        cuda, da1.get_const_data(), de_rhs.get(), d_inverse.get());
+        cuda, da1.get_const_data(), de_rhs.get(), d_inverse.get(), 0, num_rows);
 
     GKO_ASSERT_MTX_NEAR(inverse, d_inverse, 0);
     ASSERT_GT(e_dim, 0);
