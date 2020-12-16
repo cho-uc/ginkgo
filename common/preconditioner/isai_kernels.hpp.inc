@@ -293,11 +293,13 @@ __global__ __launch_bounds__(default_block_size) void generate_excess_system(
     const IndexType *__restrict__ excess_nz_ptrs,
     IndexType *__restrict__ excess_row_ptrs,
     IndexType *__restrict__ excess_col_idxs,
-    ValueType *__restrict__ excess_values, ValueType *__restrict__ excess_rhs)
+    ValueType *__restrict__ excess_values, ValueType *__restrict__ excess_rhs,
+    const size_type e_start, const size_type e_end)
 {
-    const auto row = thread::get_subwarp_id_flat<subwarp_size, IndexType>();
+    const auto row =
+        thread::get_subwarp_id_flat<subwarp_size, IndexType>() + e_start;
 
-    if (row >= num_rows) {
+    if (row >= e_end) {
         return;
     }
 
@@ -357,11 +359,14 @@ __global__ __launch_bounds__(default_block_size) void copy_excess_solution(
     IndexType num_rows, const IndexType *__restrict__ i_row_ptrs,
     const IndexType *__restrict__ excess_rhs_ptrs,
     const ValueType *__restrict__ excess_solution,
-    ValueType *__restrict__ i_values)
+    ValueType *__restrict__ i_values, const size_type e_start,
+    const size_type e_end)
 {
-    const auto row = thread::get_subwarp_id_flat<subwarp_size, IndexType>();
+    const auto excess_row =
+        thread::get_subwarp_id_flat<subwarp_size, IndexType>();
+    const auto row = excess_row + e_start;
 
-    if (row >= num_rows) {
+    if (row >= e_end) {
         return;
     }
 
@@ -369,8 +374,8 @@ __global__ __launch_bounds__(default_block_size) void copy_excess_solution(
 
     const auto i_row_begin = i_row_ptrs[row];
 
-    const auto excess_begin = excess_rhs_ptrs[row];
-    const auto excess_size = excess_rhs_ptrs[row + 1] - excess_begin;
+    const auto excess_begin = excess_rhs_ptrs[excess_row];
+    const auto excess_size = excess_rhs_ptrs[excess_row + 1] - excess_begin;
 
     // if it was handled separately:
     if (excess_size > 0) {

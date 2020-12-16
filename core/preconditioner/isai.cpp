@@ -147,48 +147,78 @@ void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
             excess_row_ptrs_full.get_data(), is_lower));
     }
 
-    auto excess_dim =
+    auto total_excess_dim =
         exec->copy_val_to_host(excess_block_ptrs.get_const_data() + num_rows);
     // if we had long rows:
-    if (excess_dim > 0) {
-        // build the excess sparse triangular system
-        auto excess_nnz = exec->copy_val_to_host(
-            excess_row_ptrs_full.get_const_data() + num_rows);
-        auto excess_system =
-            Csr::create(exec, dim<2>(excess_dim, excess_dim), excess_nnz);
-        auto excess_rhs = Dense::create(exec, dim<2>(excess_dim, 1));
-        auto excess_solution = Dense::create(exec, dim<2>(excess_dim, 1));
-        exec->run(isai::make_generate_excess_system(
-            lend(to_invert), lend(inverted), excess_block_ptrs.get_const_data(),
-            excess_row_ptrs_full.get_const_data(), lend(excess_system),
-            lend(excess_rhs)));
-        // solve it after transposing
-        std::unique_ptr<LinOpFactory> trs_factory;
-        if (is_general) {
-            trs_factory =
-                Gmres::build()
-                    .with_preconditioner(
-                        bj::build().with_max_block_size(32u).on(exec))
-                    .with_criteria(
-                        gko::stop::Iteration::build()
-                            .with_max_iters(excess_dim)
-                            .on(exec),
-                        gko::stop::AbsoluteResidualNorm<ValueType>::build()
-                            .with_tolerance(1e-6)
-                            .on(exec))
-                    .on(exec);
-            excess_solution->copy_from(excess_rhs.get());
-        } else if (is_lower) {
-            trs_factory = UpperTrs::build().on(exec);
-        } else {
-            trs_factory = LowerTrs::build().on(exec);
+    if (total_excess_dim > 0) {
+        bool done = false;
+        size_type block = 0;
+        while (true) {
+            // build the excess sparse triangular system
+            size_type excess_dim = 0;
+            size_type excess_start = block;
+            const auto block_offset = exec->copy_val_to_host(
+                excess_block_ptrs.get_const_data() + block);
+            const auto nnz_offset = exec->copy_val_to_host(
+                excess_row_ptrs_full.get_const_data() + block);
+            std::cout << "BLOCK OFFSET: " << block_offset
+                      << ", NNZ OFFSET: " << nnz_offset << std::endl;
+            while (excess_dim < 2048 && block < num_rows) {
+                block++;
+                excess_dim = exec->copy_val_to_host(
+                                 excess_block_ptrs.get_const_data() + block) -
+                             block_offset;
+            }
+            if (block == num_rows) break;
+            std::cout << "EXCESS DIM: " << excess_dim << std::endl;
+            auto excess_nnz =
+                exec->copy_val_to_host(excess_row_ptrs_full.get_const_data() +
+                                       block) -
+                nnz_offset;
+            auto excess_system =
+                Csr::create(exec, dim<2>(excess_dim, excess_dim), excess_nnz);
+            auto excess_rhs = Dense::create(exec, dim<2>(excess_dim, 1));
+            auto excess_solution = Dense::create(exec, dim<2>(excess_dim, 1));
+            exec->run(isai::make_generate_excess_system(
+                lend(to_invert), lend(inverted),
+                excess_block_ptrs.get_const_data(),
+                excess_row_ptrs_full.get_const_data(), lend(excess_system),
+                lend(excess_rhs), excess_start, block));
+            std::cout << "generated part of excess" << std::endl;
+            // solve it after transposing
+            std::unique_ptr<LinOpFactory> trs_factory;
+            if (is_general) {
+                trs_factory =
+                    Gmres::build()
+                        .with_preconditioner(
+                            bj::build().with_max_block_size(32u).on(exec))
+                        .with_criteria(
+                            gko::stop::Iteration::build()
+                                .with_max_iters(excess_dim)
+                                .on(exec),
+                            gko::stop::AbsoluteResidualNorm<ValueType>::build()
+                                .with_tolerance(1e-6)
+                                .on(exec))
+                        .on(exec);
+                excess_solution->copy_from(excess_rhs.get());
+            } else if (is_lower) {
+                trs_factory = UpperTrs::build().on(exec);
+            } else {
+                trs_factory = LowerTrs::build().on(exec);
+            }
+
+            std::cout << "EXCESS SYSTEM DIM: " << excess_system->get_size()[0]
+                      << " x " << excess_system->get_size()[1] << std::endl;
+            std::cout << "EXCESS RHS: " << excess_rhs->get_size()[0] << ", "
+                      << "EXCESS SOL: " << excess_solution->get_size()[0]
+                      << std::endl;
+            trs_factory->generate(share(excess_system->transpose()))
+                ->apply(lend(excess_rhs), lend(excess_solution));
+            // and copy the results back to the original ISAI
+            exec->run(isai::make_scatter_excess_solution(
+                excess_block_ptrs.get_const_data(), lend(excess_solution),
+                lend(inverted), excess_start, block));
         }
-        trs_factory->generate(share(excess_system->transpose()))
-            ->apply(lend(excess_rhs), lend(excess_solution));
-        // and copy the results back to the original ISAI
-        exec->run(isai::make_scatter_excess_solution(
-            excess_block_ptrs.get_const_data(), lend(excess_solution),
-            lend(inverted)));
     }
 
     approximate_inverse_ = std::move(inverted);
