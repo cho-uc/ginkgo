@@ -311,7 +311,7 @@ __global__ __launch_bounds__(default_block_size) void generate_excess_system(
     const int local_id = subwarp.thread_rank();
     const auto prefix_mask = (config::lane_mask_type{1} << local_id) - 1;
 
-    if (row == 0 && local_id == 0) {
+    if (row == e_start && local_id == 0) {
         excess_row_ptrs[0] = 0;
     }
 

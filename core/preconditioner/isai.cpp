@@ -174,6 +174,8 @@ void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
                 nnz_offset;
             auto excess_system =
                 Csr::create(exec, dim<2>(excess_dim, excess_dim), excess_nnz);
+            excess_system->set_strategy(
+                std::make_shared<typename Csr::classical>());
             auto excess_rhs = Dense::create(exec, dim<2>(excess_dim, 1));
             auto excess_solution = Dense::create(exec, dim<2>(excess_dim, 1));
             exec->run(isai::make_generate_excess_system(
@@ -182,6 +184,10 @@ void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
                 excess_row_ptrs_full.get_const_data(), lend(excess_system),
                 lend(excess_rhs), excess_start, block));
             // solve it after transposing
+            auto system_copy = Csr::create(exec->get_master());
+            system_copy->copy_from(excess_system.get());
+            auto rhs_copy = Dense::create(exec->get_master());
+            rhs_copy->copy_from(excess_rhs.get());
             std::unique_ptr<LinOpFactory> trs_factory;
             if (is_general) {
                 trs_factory =
@@ -192,11 +198,13 @@ void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
                             gko::stop::Iteration::build()
                                 .with_max_iters(excess_dim)
                                 .on(exec),
-                            gko::stop::AbsoluteResidualNorm<ValueType>::build()
+                            gko::stop::RelativeResidualNorm<ValueType>::build()
                                 .with_tolerance(1e-6)
                                 .on(exec))
                         .on(exec);
                 excess_solution->copy_from(excess_rhs.get());
+                auto sol_copy = Dense::create(exec->get_master());
+                sol_copy->copy_from(excess_solution.get());
             } else if (is_lower) {
                 trs_factory = UpperTrs::build().on(exec);
             } else {
