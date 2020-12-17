@@ -347,9 +347,6 @@ void generate_excess_system(std::shared_ptr<const DefaultExecutor>,
     IndexType e_block_begin{};
     IndexType e_nz{};
 
-    std::cout << "START: " << e_start << ", END: " << e_end
-              << ", NUM ROWS: " << num_rows << std::endl;
-
     for (size_type row = e_start; row < e_end; ++row) {
         const auto i_begin = i_row_ptrs[row];
         const auto i_size = i_row_ptrs[row + 1] - i_begin;

@@ -161,16 +161,13 @@ void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
                 excess_block_ptrs.get_const_data() + block);
             const auto nnz_offset = exec->copy_val_to_host(
                 excess_row_ptrs_full.get_const_data() + block);
-            std::cout << "BLOCK OFFSET: " << block_offset
-                      << ", NNZ OFFSET: " << nnz_offset << std::endl;
             while (excess_dim < 2048 && block < num_rows) {
                 block++;
                 excess_dim = exec->copy_val_to_host(
                                  excess_block_ptrs.get_const_data() + block) -
                              block_offset;
             }
-            if (block == num_rows) break;
-            std::cout << "EXCESS DIM: " << excess_dim << std::endl;
+            if (excess_dim == 0) break;
             auto excess_nnz =
                 exec->copy_val_to_host(excess_row_ptrs_full.get_const_data() +
                                        block) -
@@ -184,7 +181,6 @@ void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
                 excess_block_ptrs.get_const_data(),
                 excess_row_ptrs_full.get_const_data(), lend(excess_system),
                 lend(excess_rhs), excess_start, block));
-            std::cout << "generated part of excess" << std::endl;
             // solve it after transposing
             std::unique_ptr<LinOpFactory> trs_factory;
             if (is_general) {
@@ -206,12 +202,6 @@ void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
             } else {
                 trs_factory = LowerTrs::build().on(exec);
             }
-
-            std::cout << "EXCESS SYSTEM DIM: " << excess_system->get_size()[0]
-                      << " x " << excess_system->get_size()[1] << std::endl;
-            std::cout << "EXCESS RHS: " << excess_rhs->get_size()[0] << ", "
-                      << "EXCESS SOL: " << excess_solution->get_size()[0]
-                      << std::endl;
             trs_factory->generate(share(excess_system->transpose()))
                 ->apply(lend(excess_rhs), lend(excess_solution));
             // and copy the results back to the original ISAI
