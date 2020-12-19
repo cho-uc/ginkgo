@@ -22,7 +22,8 @@ stages:
   BUILD_OMP: "OFF"
   BUILD_CUDA: "OFF"
   BUILD_HIP: "OFF"
-  BUILD_HWLOC: "ON"
+  USE_EXTERNAL_HWLOC: "ON"
+  FORCE_NO_HWLOC: "OFF"
   RUN_EXAMPLES: "OFF"
   CONFIG_LOG: "ON"
   CXX_FLAGS: ""
@@ -63,7 +64,8 @@ stages:
         -DGINKGO_DEVEL_TOOLS=OFF -DGINKGO_BUILD_REFERENCE=${BUILD_REFERENCE}
         -DGINKGO_BUILD_OMP=${BUILD_OMP} -DGINKGO_BUILD_CUDA=${BUILD_CUDA}
         -DGINKGO_BUILD_HIP=${BUILD_HIP}
-        -DGINKGO_WITH_HWLOC=${BUILD_HWLOC}
+        -DGINKGO_FORCE_NO_HWLOC=${FORCE_NO_HWLOC}
+        -DGINKGO_USE_EXTERNAL_HWLOC=${USE_EXTERNAL_HWLOC}
         -DGINKGO_BUILD_TESTS=ON -DGINKGO_BUILD_EXAMPLES=ON
         -DGINKGO_RUN_EXAMPLES=${RUN_EXAMPLES}
         -DGINKGO_CONFIG_LOG_DETAILED=${CONFIG_LOG}
@@ -93,7 +95,8 @@ stages:
         -DGINKGO_DEVEL_TOOLS=OFF -DGINKGO_BUILD_REFERENCE=${BUILD_REFERENCE}
         -DGINKGO_BUILD_OMP=${BUILD_OMP} -DGINKGO_BUILD_CUDA=${BUILD_CUDA}
         -DGINKGO_BUILD_HIP=${BUILD_HIP}
-        -DGINKGO_WITH_HWLOC=${BUILD_HWLOC}
+        -DGINKGO_FORCE_NO_HWLOC=${FORCE_NO_HWLOC}
+        -DGINKGO_USE_EXTERNAL_HWLOC=${USE_EXTERNAL_HWLOC}
         -DGINKGO_BUILD_TESTS=ON -DGINKGO_BUILD_EXAMPLES=ON
         -DGINKGO_CONFIG_LOG_DETAILED=${CONFIG_LOG}
         -DGINKGO_RUN_EXAMPLES=${RUN_EXAMPLES}
@@ -250,6 +253,8 @@ build/cuda92/gcc/all/release/debug:
     - cuda
     - gpu
 
+# Make sure that our jobs run when HWLOC is
+# forcibly switched off
 build/cuda92/intel/cuda/release/static:
   <<: *default_build_with_test
   image: localhost:5000/gko-cuda92-gnu7-llvm50-intel2017
@@ -259,6 +264,7 @@ build/cuda92/intel/cuda/release/static:
     CXX_COMPILER: "icpc"
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
+    FORCE_NO_HWLOC: "OFF"
     BUILD_TYPE: "Release"
     BUILD_SHARED_LIBS: "OFF"
     CUDA_ARCH: 35
@@ -271,6 +277,8 @@ build/cuda92/intel/cuda/release/static:
     - gpu
 
 # cuda 10.0 and friends
+# Make sure that our jobs run when using self-installed
+# third-party HWLOC.
 build/cuda100/gcc/all/debug/shared:
   <<: *default_build_with_test
   image: localhost:5000/gko-cuda100-gnu7-llvm60-intel2018
@@ -279,6 +287,7 @@ build/cuda100/gcc/all/debug/shared:
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
     BUILD_HIP: "ON"
+    USE_EXTERNAL_HWLOC: "OFF"
     BUILD_TYPE: "Debug"
     CUDA_ARCH: 35
   only:
@@ -319,7 +328,6 @@ build/cuda100/intel/cuda/release/shared:
     CXX_COMPILER: "icpc"
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
-    BUILD_HWLOC: "OFF"
     BUILD_TYPE: "Release"
     CUDA_ARCH: 35
   only:
@@ -590,6 +598,7 @@ build/nocuda/clang/core/release/shared:
     C_COMPILER: "clang"
     CXX_COMPILER: "clang++"
     BUILD_REFERENCE: "OFF"
+    USE_EXTERNAL_HWLOC: "OFF"
     BUILD_TYPE: "Release"
   only:
     variables:
@@ -636,6 +645,7 @@ build/nocuda/clang/omp/debug/static:
     <<: *default_variables
     C_COMPILER: "clang"
     CXX_COMPILER: "clang++"
+    USE_EXTERNAL_HWLOC: "OFF"
     BUILD_OMP: "ON"
     BUILD_TYPE: "Debug"
     BUILD_SHARED_LIBS: "OFF"
